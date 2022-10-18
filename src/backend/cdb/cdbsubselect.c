@@ -1402,6 +1402,10 @@ is_exprs_nullable_internal(Node *exprs, List *nonnullable_vars, List *rtable)
 
 	if (IsA(exprs, Var))
 	{
+		Var *vars = (Var *)exprs;
+		if (vars->varlevelsup != 0)
+			return false;
+
 		Var		   *var = cdb_map_to_base_var((Var *) exprs, rtable);
 		return !list_member(nonnullable_vars, var);
 	}
@@ -1542,7 +1546,10 @@ cdb_find_all_vars_walker(Node *node, FindAllVarsContext *context)
 
 	if (IsA(node, Var))
 	{
-		Var     *var;
+		Var     *var = (Var *)node;
+
+		if (var->varlevelsup != 0)
+			return false;
 
 		/*
 		 * The vars fetched from targetList/testexpr.. can be from virtual range table (RTE_JOIN),
