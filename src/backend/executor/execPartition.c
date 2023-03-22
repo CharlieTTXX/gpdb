@@ -587,7 +587,7 @@ ExecInitPartitionInfo(ModifyTableState *mtstate, EState *estate,
 	leaf_part_rri = makeNode(ResultRelInfo);
 	InitResultRelInfo(leaf_part_rri,
 					  partrel,
-					  0,
+					  partrel->rd_rel->relkind != RELKIND_FOREIGN_TABLE ? 1 : 0,
 					  rootResultRelInfo,
 					  estate->es_instrument);
 
@@ -1019,6 +1019,8 @@ ExecInitRoutingInfo(ModifyTableState *mtstate,
 
 	partRelInfo->ri_PartitionInfo = partrouteinfo;
 	partRelInfo->ri_CopyMultiInsertBuffer = NULL;
+	if (partRelInfo->ri_junkFilter == NULL)
+		partRelInfo->ri_junkFilter = rootRelInfo->ri_junkFilter;
 
 	/*
 	 * Keep track of it in the PartitionTupleRouting->partitions array.
