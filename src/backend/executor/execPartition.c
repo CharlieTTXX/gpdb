@@ -587,7 +587,7 @@ ExecInitPartitionInfo(ModifyTableState *mtstate, EState *estate,
 	leaf_part_rri = makeNode(ResultRelInfo);
 	InitResultRelInfo(leaf_part_rri,
 					  partrel,
-					  partrel->rd_rel->relkind != RELKIND_FOREIGN_TABLE ? 1 : 0,
+					  1,
 					  rootResultRelInfo,
 					  estate->es_instrument);
 
