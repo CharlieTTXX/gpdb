@@ -15488,7 +15488,7 @@ index_copy_data(Relation rel, RelFileNode newrnode)
 {
 	SMgrRelation dstrel;
 
-	SMgrImpl smgr_which = RelationIsAppendOptimized(rel) ? SMGR_AO : SMGR_MD;
+	SMgrImpl smgr_which = RelationStorageIsAO(rel) ? SMGR_AO : SMGR_MD;
 
 	dstrel = smgropen(newrnode, rel->rd_backend, smgr_which);
 					  
@@ -16568,7 +16568,7 @@ build_ctas_with_dist(Relation rel, DistributedBy *dist_clause,
 	pre_built = prebuild_temp_table(rel, tmprel, dist_clause,
 									get_am_name(rel->rd_rel->relam),
 									storage_opts,
-									RelationIsAppendOptimized(rel),
+									RelationStorageIsAO(rel),
 									useExistingColumnAttributes);
 	if (pre_built)
 	{

@@ -161,7 +161,7 @@ RelationDropStorage(Relation rel)
 	pending->atCommit = true;	/* delete if commit */
 	pending->nestLevel = GetCurrentTransactionNestLevel();
 	pending->relnode.smgr_which =
-		RelationIsAppendOptimized(rel) ? SMGR_AO : SMGR_MD;
+		RelationStorageIsAO(rel) ? SMGR_AO : SMGR_MD;
 	pending->next = pendingDeletes;
 	pendingDeletes = pending;
 
