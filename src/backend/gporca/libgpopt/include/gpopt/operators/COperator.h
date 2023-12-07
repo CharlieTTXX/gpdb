@@ -136,6 +136,7 @@ public:
 		EopLogicalPartitionSelector,
 		EopLogicalAssert,
 		EopLogicalMaxOneRow,
+		EopLogicalTupSplit,
 
 		EopScalarCmp,
 		EopScalarIsDistinctFrom,
