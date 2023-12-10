@@ -30,13 +30,9 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalTupSplit::CLogicalTupSplit(CMemoryPool *mp)
 	: CLogical(mp),
-	  m_pdrgpcrDelete(nullptr),
-	  m_pdrgpcrInsert(nullptr),
-	  m_pcrCtid(nullptr),
-	  m_pcrSegmentId(nullptr),
-	  m_pcrAction(nullptr)
+	  m_aggexprid(nullptr),
+	  m_dqaexprs(nullptr)
 {
-	m_fPattern = true;
 }
 
 //---------------------------------------------------------------------------
@@ -47,29 +43,18 @@ CLogicalTupSplit::CLogicalTupSplit(CMemoryPool *mp)
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CLogicalTupSplit::CLogicalTupSplit(CMemoryPool *mp, CColRefArray *pdrgpcrDelete,
-							 CColRefArray *pdrgpcrInsert, CColRef *pcrCtid,
-							 CColRef *pcrSegmentId, CColRef *pcrAction)
+CLogicalTupSplit::CLogicalTupSplit(CMemoryPool *mp,
+								   CColRef *aggexprid,
+								   CColRefArray *dqaexprs)
 	: CLogical(mp),
-	  m_pdrgpcrDelete(pdrgpcrDelete),
-	  m_pdrgpcrInsert(pdrgpcrInsert),
-	  m_pcrCtid(pcrCtid),
-	  m_pcrSegmentId(pcrSegmentId),
-	  m_pcrAction(pcrAction)
-
+	  m_aggexprid(aggexprid),
+	  m_dqaexprs(dqaexprs)
 {
-	GPOS_ASSERT(nullptr != pdrgpcrDelete);
-	GPOS_ASSERT(nullptr != pdrgpcrInsert);
-	GPOS_ASSERT(pdrgpcrInsert->Size() == pdrgpcrDelete->Size());
-	GPOS_ASSERT(nullptr != pcrCtid);
-	GPOS_ASSERT(nullptr != pcrSegmentId);
-	GPOS_ASSERT(nullptr != pcrAction);
+	GPOS_ASSERT(nullptr != aggexprid);
+	GPOS_ASSERT(nullptr != dqaexprs);
 
-	m_pcrsLocalUsed->Include(m_pdrgpcrDelete);
-	m_pcrsLocalUsed->Include(m_pdrgpcrInsert);
-	m_pcrsLocalUsed->Include(m_pcrCtid);
-	m_pcrsLocalUsed->Include(m_pcrSegmentId);
-	m_pcrsLocalUsed->Include(m_pcrAction);
+	m_pcrsLocalUsed->Include(m_aggexprid);
+	m_pcrsLocalUsed->Include(m_dqaexprs);
 }
 
 //---------------------------------------------------------------------------
@@ -82,8 +67,7 @@ CLogicalTupSplit::CLogicalTupSplit(CMemoryPool *mp, CColRefArray *pdrgpcrDelete,
 //---------------------------------------------------------------------------
 CLogicalTupSplit::~CLogicalTupSplit()
 {
-	CRefCount::SafeRelease(m_pdrgpcrDelete);
-	CRefCount::SafeRelease(m_pdrgpcrInsert);
+	CRefCount::SafeRelease(m_dqaexprs);
 }
 
 //---------------------------------------------------------------------------
@@ -133,10 +117,17 @@ CLogicalTupSplit::HashValue() const
 //
 //---------------------------------------------------------------------------
 COperator *
-CLogicalTupSplit::PopCopyWithRemappedColumns()
+CLogicalTupSplit::PopCopyWithRemappedColumns(CMemoryPool *mp,
+										  UlongToColRefMap *colref_mapping,
+										  BOOL must_exist)
 {
-    return NULL;
+	CColRefArray *dqaexprs =
+		CUtils::PdrgpcrRemap(mp, m_dqaexprs, colref_mapping, must_exist);
+	CColRef *aggexprid = CUtils::PcrRemap(m_aggexprid, colref_mapping, must_exist);
+
+	return GPOS_NEW(mp) CLogicalTupSplit(mp, aggexprid, dqaexprs);
 }
+
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -153,7 +144,8 @@ CLogicalTupSplit::DeriveOutputColumns(CMemoryPool *mp, CExpressionHandle &exprhd
 
 	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
 	pcrs->Union(exprhdl.DeriveOutputColumns(0));
-	pcrs->Include(m_pcrAction);
+	pcrs->Include(m_aggexprid);
+	pcrs->Include(m_dqaexprs);
 
 	return pcrs;
 }
@@ -203,7 +195,8 @@ CXformSet *
 CLogicalTupSplit::PxfsCandidates(CMemoryPool *mp) const
 {
 	CXformSet *xform_set = GPOS_NEW(mp) CXformSet(mp);
-	(void) xform_set->ExchangeSet(CXform::ExfImplementSplit);
+
+	//	(void) xform_set->ExchangeSet(CXform::ExfImplementSplit);
 	return xform_set;
 }
 
@@ -242,6 +235,9 @@ CLogicalTupSplit::OsPrint(IOstream &os) const
 		return COperator::OsPrint(os);
 	}
 
+	os << SzId() << " -- DQAEXPRs Columns: [";
+	CUtils::OsPrintDrgPcr(os, m_dqaexprs);
+	os << "], AGGEXPRID ";
 	m_aggexprid->OsPrint(os);
 
 	return os;

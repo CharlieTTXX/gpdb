@@ -89,6 +89,8 @@ private:
 	// is aggregate replicate slice execution safe
 	BOOL m_fRepSafe;
 
+	ULONG m_aggexprid;
+
 public:
 	CScalarAggFunc(const CScalarAggFunc &) = delete;
 
@@ -176,6 +178,12 @@ public:
 	SetIsDistinct(BOOL val)
 	{
 		m_is_distinct = val;
+	}
+
+	void
+	SetAggexprid(ULONG val)
+	{
+		m_aggexprid = val;
 	}
 
 	EAggfuncKind

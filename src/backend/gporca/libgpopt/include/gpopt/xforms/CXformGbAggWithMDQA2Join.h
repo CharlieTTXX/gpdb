@@ -15,6 +15,7 @@
 #include "gpos/base.h"
 
 #include "gpopt/xforms/CXformExploration.h"
+#include "gpopt/base/CUtils.h"
 
 namespace gpopt
 {
@@ -32,11 +33,35 @@ using namespace gpos;
 class CXformGbAggWithMDQA2Join : public CXformExploration
 {
 private:
+	// hash map between expression and a column reference
+	using ExprToColRefMap =
+		CHashMap<CExpression, CColRef, CExpression::HashValue, CUtils::Equals,
+				 CleanupRelease<CExpression>, CleanupNULL<CColRef>>;
+
 	static CExpression *PexprMDQAs2Join(CMemoryPool *mp, CExpression *pexpr);
 
 	// expand GbAgg with multiple distinct aggregates into a join of single distinct
 	// aggregates
 	static CExpression *PexprExpandMDQAs(CMemoryPool *mp, CExpression *pexpr);
+
+	static CExpression *PexprTupSplitMDQAs(CMemoryPool *mp, CExpression *pexpr);
+
+	static CExpression *PexprTupSplitAggs(CMemoryPool *mp, CExpression *pexpr);
+
+	static void ExtractDistinctCols(CMemoryPool *mp, CColumnFactory *col_factory, CMDAccessor *md_accessor,
+									CExpression *pexpr, CExpressionArray *pdrgpexprChildPrEl,
+									ExprToColRefMap *phmexprcr,
+									CColRefArray **ppdrgpcrArgDQA);  // output: array of distinct aggs arguments
+
+	static CColRef *PcrAggFuncArgument(CMemoryPool *mp, CMDAccessor *md_accessor,
+								CColumnFactory *col_factory,
+								CExpression *pexprArg,
+								CExpressionArray *pdrgpexprChildPrEl);
+	static CExpression *PexprTupSplitAggregations(
+								CMemoryPool *mp, CExpression *pexprRelational,
+								CExpressionArray *pdrgpexprPrElFirstStage,
+								CExpressionArray *pdrgpexprPrElThirdStage, CColRefArray *pdrgpcrArgDQA,
+								CColRefArray *pdrgpcrLastStage, CColRefArray *dqaexprs, CColRef *aggexprid);
 
 	// main transformation function driver
 	static CExpression *PexprTransform(CMemoryPool *mp, CExpression *pexpr);

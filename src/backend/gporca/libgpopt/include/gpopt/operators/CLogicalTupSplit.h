@@ -32,11 +32,9 @@ class CTableDescriptor;
 class CLogicalTupSplit : public CLogical
 {
 private:
-    //
-	CColRef2dArray *m_dqaexprs;
-
-    //
 	CColRef *m_aggexprid;
+
+	CColRefArray *m_dqaexprs;
 
 public:
 	CLogicalTupSplit(const CLogicalTupSplit &) = delete;
@@ -45,9 +43,7 @@ public:
 	explicit CLogicalTupSplit(CMemoryPool *mp);
 
 	// ctor
-	CLogicalTupSplit(CMemoryPool *mp, CColRefArray *pdrgpcrDelete,
-				  CColRefArray *pdrgpcrInsert, CColRef *pcrCtid,
-				  CColRef *pcrSegmentId, CColRef *pcrAction);
+	CLogicalTupSplit(CMemoryPool *mp, CColRef *aggexprid, CColRefArray *dqapexrs);
 
 	// dtor
 	~CLogicalTupSplit() override;
