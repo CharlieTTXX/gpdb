@@ -234,6 +234,7 @@ public:
 		ExfSelect2IndexOnlyGet,
 		ExfSelect2DynamicIndexOnlyGet,
 		ExfLimit2IndexOnlyGet,
+		ExfImplementTupSplit,
 		ExfInvalid,
 		ExfSentinel = ExfInvalid
 	};

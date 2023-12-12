@@ -456,7 +456,6 @@ CXformGbAggWithMDQA2Join::PexprTupSplitAggregations(
 			pcrs->Include(colref);
 		}
 	}
-	pdrgpcrLocal->Append(aggexprid);
 	pcrs->Release();
 
 
@@ -465,9 +464,13 @@ CXformGbAggWithMDQA2Join::PexprTupSplitAggregations(
 	CLogicalTupSplit *popTupSplit = nullptr;
 
 
-	popTupSplit = GPOS_NEW(mp) CLogicalTupSplit(mp, aggexprid, dqaexprs);
+	popTupSplit = GPOS_NEW(mp) CLogicalTupSplit(mp, aggexprid, dqaexprs, pdrgpcrLocal);
 	// the local aggregate is responsible for removing duplicates
 	pdrgpcrArgDQA->AddRef();
+
+	// add aggexprid to group columns
+	pdrgpcrLocal->Append(aggexprid);
+
 	popFirstStage = GPOS_NEW(mp) CLogicalGbAgg(
 		mp, pdrgpcrLocal, COperator::EgbaggtypeLocal,
 		false /* fGeneratesDuplicates */, pdrgpcrArgDQA, CLogicalGbAgg::EasOthers);

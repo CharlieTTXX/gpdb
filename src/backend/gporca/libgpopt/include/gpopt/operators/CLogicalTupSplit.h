@@ -36,6 +36,9 @@ private:
 
 	CColRefArray *m_dqaexprs;
 
+	// array of grouping columns
+	CColRefArray *m_pdrgpcr;
+
 public:
 	CLogicalTupSplit(const CLogicalTupSplit &) = delete;
 
@@ -43,7 +46,7 @@ public:
 	explicit CLogicalTupSplit(CMemoryPool *mp);
 
 	// ctor
-	CLogicalTupSplit(CMemoryPool *mp, CColRef *aggexprid, CColRefArray *dqapexrs);
+	CLogicalTupSplit(CMemoryPool *mp, CColRef *aggexprid, CColRefArray *dqapexrs, CColRefArray *pdrgpcr);
 
 	// dtor
 	~CLogicalTupSplit() override;
@@ -67,6 +70,13 @@ public:
 	GetDQAExpr() const
 	{
 		return m_dqaexprs;
+	}
+
+	// Group columns
+	CColRefArray *
+	GetGroupby() const
+	{
+		return m_pdrgpcr;
 	}
 
 	// ctid column
@@ -163,7 +173,7 @@ public:
 	PopConvert(COperator *pop)
 	{
 		GPOS_ASSERT(nullptr != pop);
-		GPOS_ASSERT(EopLogicalSplit == pop->Eopid());
+		GPOS_ASSERT(EopLogicalTupSplit == pop->Eopid());
 
 		return dynamic_cast<CLogicalTupSplit *>(pop);
 	}

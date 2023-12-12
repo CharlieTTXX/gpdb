@@ -231,6 +231,7 @@ public:
 		EopPhysicalHashAggDeduplicate,
 		EopPhysicalStreamAgg,
 		EopPhysicalStreamAggDeduplicate,
+		EopPhysicalTupSplit,
 		EopPhysicalScalarAgg,
 
 		EopPhysicalSerialUnionAll,

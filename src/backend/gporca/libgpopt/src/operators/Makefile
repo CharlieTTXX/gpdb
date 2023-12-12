@@ -133,6 +133,7 @@ OBJS        = CExpression.o \
               CPhysicalSerialUnionAll.o \
               CPhysicalSort.o \
               CPhysicalSplit.o \
+              CPhysicalTupSplit.o \
               CPhysicalSpool.o \
               CPhysicalStreamAgg.o \
               CPhysicalStreamAggDeduplicate.o \

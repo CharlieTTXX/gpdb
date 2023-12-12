@@ -62,6 +62,7 @@ OBJS        = CDecorrelator.o \
               CXformImplementTVF.o \
               CXformImplementTVFNoArgs.o \
               CXformImplementUnionAll.o \
+              CXformImplementTupSplit.o \
               CXformImplementation.o \
               CXformIndexGet2IndexScan.o \
               CXformIndexOnlyGet2IndexOnlyScan.o \

@@ -45,16 +45,19 @@ CLogicalTupSplit::CLogicalTupSplit(CMemoryPool *mp)
 //---------------------------------------------------------------------------
 CLogicalTupSplit::CLogicalTupSplit(CMemoryPool *mp,
 								   CColRef *aggexprid,
-								   CColRefArray *dqaexprs)
+								   CColRefArray *dqaexprs,
+								   CColRefArray *pdrgpcr)
 	: CLogical(mp),
 	  m_aggexprid(aggexprid),
-	  m_dqaexprs(dqaexprs)
+	  m_dqaexprs(dqaexprs),
+	  m_pdrgpcr(pdrgpcr)
 {
 	GPOS_ASSERT(nullptr != aggexprid);
 	GPOS_ASSERT(nullptr != dqaexprs);
 
 	m_pcrsLocalUsed->Include(m_aggexprid);
 	m_pcrsLocalUsed->Include(m_dqaexprs);
+	m_pcrsLocalUsed->Include(m_pdrgpcr);
 }
 
 //---------------------------------------------------------------------------
@@ -68,6 +71,7 @@ CLogicalTupSplit::CLogicalTupSplit(CMemoryPool *mp,
 CLogicalTupSplit::~CLogicalTupSplit()
 {
 	CRefCount::SafeRelease(m_dqaexprs);
+	CRefCount::SafeRelease(m_pdrgpcr);
 }
 
 //---------------------------------------------------------------------------
@@ -123,9 +127,11 @@ CLogicalTupSplit::PopCopyWithRemappedColumns(CMemoryPool *mp,
 {
 	CColRefArray *dqaexprs =
 		CUtils::PdrgpcrRemap(mp, m_dqaexprs, colref_mapping, must_exist);
+	CColRefArray *pdrgpcr =
+		CUtils::PdrgpcrRemap(mp, m_pdrgpcr, colref_mapping, must_exist);
 	CColRef *aggexprid = CUtils::PcrRemap(m_aggexprid, colref_mapping, must_exist);
 
-	return GPOS_NEW(mp) CLogicalTupSplit(mp, aggexprid, dqaexprs);
+	return GPOS_NEW(mp) CLogicalTupSplit(mp, aggexprid, dqaexprs, pdrgpcr);
 }
 
 
@@ -196,7 +202,7 @@ CLogicalTupSplit::PxfsCandidates(CMemoryPool *mp) const
 {
 	CXformSet *xform_set = GPOS_NEW(mp) CXformSet(mp);
 
-	//	(void) xform_set->ExchangeSet(CXform::ExfImplementSplit);
+	(void) xform_set->ExchangeSet(CXform::ExfImplementTupSplit);
 	return xform_set;
 }
 
@@ -237,6 +243,8 @@ CLogicalTupSplit::OsPrint(IOstream &os) const
 
 	os << SzId() << " DQAEXPRs Columns: [";
 	CUtils::OsPrintDrgPcr(os, m_dqaexprs);
+	os << "], Group Columns: [";
+	CUtils::OsPrintDrgPcr(os, m_pdrgpcr);
 	os << "], AGGEXPRID: ";
 	m_aggexprid->OsPrint(os);
 
