@@ -235,9 +235,9 @@ CLogicalTupSplit::OsPrint(IOstream &os) const
 		return COperator::OsPrint(os);
 	}
 
-	os << SzId() << " -- DQAEXPRs Columns: [";
+	os << SzId() << " DQAEXPRs Columns: [";
 	CUtils::OsPrintDrgPcr(os, m_dqaexprs);
-	os << "], AGGEXPRID ";
+	os << "], AGGEXPRID: ";
 	m_aggexprid->OsPrint(os);
 
 	return os;

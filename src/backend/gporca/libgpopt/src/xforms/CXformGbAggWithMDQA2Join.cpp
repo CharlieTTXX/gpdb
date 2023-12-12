@@ -444,8 +444,8 @@ CXformGbAggWithMDQA2Join::PexprTupSplitAggregations(
 	GPOS_ASSERT(0 < length);
 
 
-	// add the distinct column to the group by at the first stage of
-	// the multi-level aggregation
+	// add the distinct column and aggexprid to the group by
+	// at the first stage of the multi-level aggregation
 	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp, pdrgpcrLocal);
 	for (ULONG ul = 0; ul < length; ul++)
 	{
@@ -456,6 +456,7 @@ CXformGbAggWithMDQA2Join::PexprTupSplitAggregations(
 			pcrs->Include(colref);
 		}
 	}
+	pdrgpcrLocal->Append(aggexprid);
 	pcrs->Release();
 
 
