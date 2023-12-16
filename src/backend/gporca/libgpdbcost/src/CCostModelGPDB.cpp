@@ -267,7 +267,8 @@ CCostModelGPDB::FUnary(COperator::EOperatorId op_id)
 		   COperator::EopPhysicalLimit == op_id ||
 		   COperator::EopPhysicalPartitionSelector == op_id ||
 		   COperator::EopPhysicalSplit == op_id ||
-		   COperator::EopPhysicalSpool == op_id;
+		   COperator::EopPhysicalSpool == op_id ||
+		   COperator::EopPhysicalTupSplit == op_id;
 }
 
 

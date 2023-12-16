@@ -156,7 +156,10 @@ CPhysicalTupSplit::PcrsRequired(CMemoryPool *mp,
 	GPOS_ASSERT(0 == child_index);
 
 	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp, *m_pcrsRequiredLocal);
+
+	//TODO we need consider more about here as with-agg is on
 	pcrs->Union(pcrsRequired);
+	pcrs->Exclude(m_aggexprid);
 
 	return pcrs;
 }
@@ -277,9 +280,13 @@ CPhysicalTupSplit::PdsDerive(CMemoryPool *mp, CExpressionHandle &exprhdl) const
 
 	GPOS_ASSERT(nullptr != mp);
 
-	pdsOuter->AddRef();
-	return pdsOuter;
+	if (CDistributionSpec::EdtHashed != pdsOuter->Edt())
+	{
+		pdsOuter->AddRef();
+		return pdsOuter;
+	}
 
+	return GPOS_NEW(mp) CDistributionSpecRandom();
 }
 
 //---------------------------------------------------------------------------

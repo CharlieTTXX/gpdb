@@ -464,7 +464,7 @@ CXformGbAggWithMDQA2Join::PexprTupSplitAggregations(
 	CLogicalTupSplit *popTupSplit = nullptr;
 
 
-	popTupSplit = GPOS_NEW(mp) CLogicalTupSplit(mp, aggexprid, dqaexprs, pdrgpcrLocal);
+	popTupSplit = GPOS_NEW(mp) CLogicalTupSplit(mp, aggexprid, dqaexprs, pdrgpcrLastStage);
 	// the local aggregate is responsible for removing duplicates
 	pdrgpcrArgDQA->AddRef();
 
