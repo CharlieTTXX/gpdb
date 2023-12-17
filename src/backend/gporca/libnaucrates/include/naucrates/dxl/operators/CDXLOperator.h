@@ -159,6 +159,8 @@ enum Edxlopid
 	EdxlopPhysicalDML,
 	EdxlopPhysicalSplit,
 
+	EdxlopPhysicalTupSplit,
+
 	EdxlopPhysicalAssert,
 
 	EdxlopSentinel

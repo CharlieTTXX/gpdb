@@ -152,6 +152,7 @@ CDXLTokens::Init(CMemoryPool *mp)
 		{EdxltokenPhysicalPartitionSelectorId, GPOS_WSZ_LIT("SelectorId")},
 		{EdxltokenPhysicalPartitionSelectorScanId, GPOS_WSZ_LIT("ScanId")},
 		{EdxltokenPhysicalSplit, GPOS_WSZ_LIT("Split")},
+		{EdxltokenPhysicalTupSplit, GPOS_WSZ_LIT("TupSplit")},
 		{EdxltokenPhysicalAssert, GPOS_WSZ_LIT("Assert")},
 		{EdxltokenPhysicalCTEProducer, GPOS_WSZ_LIT("CTEProducer")},
 		{EdxltokenPhysicalCTEConsumer, GPOS_WSZ_LIT("CTEConsumer")},
@@ -544,6 +545,9 @@ CDXLTokens::Init(CMemoryPool *mp)
 		{EdxltokenRelStorageMixedPartitioned, GPOS_WSZ_LIT("MixedPartitioned")},
 		{EdxltokenRelStorageForeign, GPOS_WSZ_LIT("Foreign")},
 		{EdxltokenRelStorageCompositeType, GPOS_WSZ_LIT("Composite")},
+
+		{EdxltokenAggExprId, GPOS_WSZ_LIT("AggExprId")},
+		{EdxltokenDQAExprs, GPOS_WSZ_LIT("DQAExprs")},
 
 		{EdxltokenRelDistrPolicy, GPOS_WSZ_LIT("DistributionPolicy")},
 		{EdxltokenRelDistrCoordinatorOnly, GPOS_WSZ_LIT("CoordinatorOnly")},

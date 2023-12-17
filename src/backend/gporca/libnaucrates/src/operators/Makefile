@@ -83,6 +83,8 @@ OBJS        = CDXLColDescr.o \
               CDXLPhysicalSequence.o \
               CDXLPhysicalSort.o \
               CDXLPhysicalSplit.o \
+              CDXLPhysicalTupSplit.o \
+              CDXLPhysicalSubqueryScan.o \
               CDXLPhysicalTVF.o \
               CDXLPhysicalTableScan.o \
               CDXLPhysicalValuesScan.o \

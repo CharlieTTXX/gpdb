@@ -678,6 +678,7 @@ enum Edxltoken
 	EdxltokenDirectDispatchIsRaw,
 	EdxltokenDirectDispatchKeyValue,
 	EdxltokenPhysicalSplit,
+	EdxltokenPhysicalTupSplit,
 	EdxltokenPhysicalAssert,
 
 	EdxltokenErrorCode,
@@ -751,6 +752,9 @@ enum Edxltoken
 	EdxltokenForeignServerOid,
 	EdxltokenPhysicalDynamicIndexOnlyScan,
 	EdxltokenRelAppendOnlyVersion,
+
+	EdxltokenAggExprId,
+	EdxltokenDQAExprs,
 
 	EdxltokenSentinel
 };

@@ -427,6 +427,11 @@ private:
 						 CDistributionSpecArray *pdrgpdsBaseTables,
 						 ULONG *pulNonGatherMotions, BOOL *pfDML);
 
+	// translate a tupsplit operator
+	CDXLNode *PdxlnTupSplit(CExpression *pexpr, CColRefArray *colref_array,
+							CDistributionSpecArray *pdrgpdsBaseTables,
+							ULONG *pulNonGatherMotions, BOOL *pfDML);
+
 	// translate an assert operator
 	CDXLNode *PdxlnAssert(CExpression *pexprAssert, CColRefArray *colref_array,
 						  CDistributionSpecArray *pdrgpdsBaseTables,
