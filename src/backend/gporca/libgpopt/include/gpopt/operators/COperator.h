@@ -180,6 +180,7 @@ public:
 		EopScalarSubqueryNotExists,
 
 		EopScalarDMLAction,
+		EopScalarAggExprId,
 
 		EopScalarBitmapIndexProbe,
 		EopScalarBitmapBoolOp,

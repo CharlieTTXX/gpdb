@@ -1323,6 +1323,7 @@ _copyTupleSplit(const TupleSplit *from)
 	}
 
 	COPY_NODE_FIELD(dqa_expr_lst);
+	COPY_SCALAR_FIELD(orca);
 
 	return newnode;
 }

@@ -64,7 +64,7 @@ public:
 
 	// group by column ids
 	ULongPtrArray *
-	GetGroupByArray() const
+	GetGroupArray() const
 	{
 		return m_pdrgpcr;
 	}
@@ -92,7 +92,7 @@ public:
 	Cast(CDXLOperator *dxl_op)
 	{
 		GPOS_ASSERT(nullptr != dxl_op);
-		GPOS_ASSERT(EdxlopPhysicalSplit == dxl_op->GetDXLOperator());
+		GPOS_ASSERT(EdxlopPhysicalTupSplit == dxl_op->GetDXLOperator());
 
 		return dynamic_cast<CDXLPhysicalTupSplit *>(dxl_op);
 	}

@@ -1277,6 +1277,8 @@ typedef struct TupleSplit
 	AttrNumber *grpColIdx;		    /* their indexes in the target list */
 
 	List       *dqa_expr_lst;
+
+	bool		orca;
 } TupleSplit;
 
 /* ----------------

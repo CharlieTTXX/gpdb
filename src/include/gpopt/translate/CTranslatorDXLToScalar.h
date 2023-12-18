@@ -203,6 +203,9 @@ private:
 	static Expr *TranslateDXLScalarDMLActionToScalar(
 		const CDXLNode *dml_action_node, CMappingColIdVar *colid_var);
 
+	static Expr *TranslateDXLScalarAggExprIdToScalar(
+		const CDXLNode *dml_action_node, CMappingColIdVar *colid_var);
+
 	List *TranslateScalarListChildren(const CDXLNode *dxlnode,
 									  CMappingColIdVar *colid_var);
 

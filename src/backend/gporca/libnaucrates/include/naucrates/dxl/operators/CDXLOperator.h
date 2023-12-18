@@ -116,6 +116,7 @@ enum Edxlopid
 	EdxlopScalarBitmapBoolOp,
 
 	EdxlopScalarDMLAction,
+	EdxlopScalarAggExprId,
 	EdxlopScalarOpList,
 	EdxlopScalarValuesList,
 	EdxlopScalarSortGroupClause,

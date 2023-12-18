@@ -147,6 +147,7 @@
 #include "naucrates/dxl/operators/CDXLScalarCoerceViaIO.h"
 #include "naucrates/dxl/operators/CDXLScalarComp.h"
 #include "naucrates/dxl/operators/CDXLScalarDMLAction.h"
+#include "naucrates/dxl/operators/CDXLScalarAggExprId.h"
 #include "naucrates/dxl/operators/CDXLScalarDistinctComp.h"
 #include "naucrates/dxl/operators/CDXLScalarFieldSelect.h"
 #include "naucrates/dxl/operators/CDXLScalarFuncExpr.h"
@@ -664,6 +665,8 @@ CTranslatorExprToDXL::PdxlnScalar(CExpression *pexpr)
 			return CTranslatorExprToDXL::PdxlnAssertConstraint(pexpr);
 		case COperator::EopScalarDMLAction:
 			return CTranslatorExprToDXL::PdxlnDMLAction(pexpr);
+		case COperator::EopScalarAggExprId:
+			return CTranslatorExprToDXL::PdxlnAggExprId(pexpr);
 		case COperator::EopScalarBitmapIndexProbe:
 			return CTranslatorExprToDXL::PdxlnBitmapIndexProbe(pexpr);
 		case COperator::EopScalarBitmapBoolOp:
@@ -6806,6 +6809,28 @@ CTranslatorExprToDXL::PdxlnDMLAction(CExpression *
 
 	return GPOS_NEW(m_mp)
 		CDXLNode(m_mp, GPOS_NEW(m_mp) CDXLScalarDMLAction(m_mp));
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorExprToDXL::PdxlnAggExprId
+//
+//	@doc:
+//		Create a DXL AggExprId node from an optimizer action expression
+//
+//---------------------------------------------------------------------------
+CDXLNode *
+CTranslatorExprToDXL::PdxlnAggExprId(CExpression *
+#ifdef GPOS_DEBUG
+										 pexpr
+#endif	// GPOS_DEBUG
+)
+{
+	GPOS_ASSERT(nullptr != pexpr);
+	GPOS_ASSERT(COperator::EopScalarAggExprId == pexpr->Pop()->Eopid());
+
+	return GPOS_NEW(m_mp)
+		CDXLNode(m_mp, GPOS_NEW(m_mp) CDXLScalarAggExprId(m_mp));
 }
 
 //---------------------------------------------------------------------------

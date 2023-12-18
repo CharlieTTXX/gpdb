@@ -209,6 +209,7 @@ enum Edxltoken
 	EdxltokenScalarSubqueryNotExists,
 
 	EdxltokenScalarDMLAction,
+	EdxltokenScalarAggExprId,
 	EdxltokenScalarOpList,
 
 	EdxltokenPartLevelEqFilterList,

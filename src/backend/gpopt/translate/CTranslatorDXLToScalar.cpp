@@ -224,6 +224,10 @@ CTranslatorDXLToScalar::TranslateDXLToScalar(const CDXLNode *dxlnode,
 		{
 			return TranslateDXLScalarDMLActionToScalar(dxlnode, colid_var);
 		}
+		case EdxlopScalarAggExprId:
+		{
+			return TranslateDXLScalarAggExprIdToScalar(dxlnode, colid_var);
+		}
 		case EdxlopScalarValuesList:
 		{
 			return TranslateDXLScalarValuesListToScalar(dxlnode, colid_var);
@@ -2215,6 +2219,32 @@ CTranslatorDXLToScalar::TranslateDXLScalarDMLActionToScalar(
 	return (Expr *) expr;
 }
 
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorDXLToScalar::TranslateDXLScalarAggExprIdToScalar
+//
+//	@doc:
+//		Translates a AggExprId expression
+//
+//---------------------------------------------------------------------------
+Expr *
+CTranslatorDXLToScalar::TranslateDXLScalarAggExprIdToScalar(
+	const CDXLNode *
+#ifdef GPOS_DEBUG
+		dml_action_node
+#endif
+	,
+	CMappingColIdVar *	// colid_var
+)
+{
+	GPOS_ASSERT(nullptr != dml_action_node);
+	GPOS_ASSERT(EdxlopScalarAggExprId ==
+				dml_action_node->GetOperator()->GetDXLOperator());
+
+	AggExprId *expr = MakeNode(AggExprId);
+
+	return (Expr *) expr;
+}
 
 Expr *
 CTranslatorDXLToScalar::TranslateDXLScalarSortGroupClauseToScalar(

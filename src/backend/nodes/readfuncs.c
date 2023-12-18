@@ -3270,6 +3270,7 @@ _readTupleSplit(void)
 	READ_ATTRNUMBER_ARRAY(grpColIdx, local_node->numCols);
 
 	READ_NODE_FIELD(dqa_expr_lst);
+	READ_BOOL_FIELD(orca);
 
 	READ_DONE();
 }

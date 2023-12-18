@@ -89,13 +89,26 @@ ExecInitTupleSplit(TupleSplit *node, EState *estate, int eflags)
 		DQAExpr *dqaExpr = (DQAExpr *)lfirst(lc);
 
 		int j = -1;
-		while ((j = bms_next_member(dqaExpr->agg_args_id_bms, j)) >= 0)
+		if (node->orca)
 		{
-			TargetEntry *te = get_sortgroupref_tle((Index)j, node->plan.lefttree->targetlist);
-			tup_spl_state->dqa_split_bms[i] = bms_add_member(tup_spl_state->dqa_split_bms[i], te->resno);
+			while ((j = bms_next_member(dqaExpr->agg_args_id_bms, j)) >= 0)
+			{
+				tup_spl_state->dqa_split_bms[i] = bms_add_member(tup_spl_state->dqa_split_bms[i], j);
 
-			if (maxAttrNum < te->resno)
-				maxAttrNum = te->resno;
+				if (maxAttrNum < j)
+					maxAttrNum = j;
+			}
+		}
+		else
+		{
+			while ((j = bms_next_member(dqaExpr->agg_args_id_bms, j)) >= 0)
+			{
+				TargetEntry *te = get_sortgroupref_tle((Index)j, node->plan.lefttree->targetlist);
+				tup_spl_state->dqa_split_bms[i] = bms_add_member(tup_spl_state->dqa_split_bms[i], te->resno);
+
+				if (maxAttrNum < te->resno)
+					maxAttrNum = te->resno;
+			}
 		}
 
 		if (dqaExpr->agg_vars_ref != NULL)
@@ -114,7 +127,7 @@ ExecInitTupleSplit(TupleSplit *node, EState *estate, int eflags)
 		/* init filter expr */
 		tup_spl_state->agg_filter_array[i] = ExecInitExpr(dqaExpr->agg_filter, (PlanState *)tup_spl_state);
 		tup_spl_state->dqa_id_array[i] = dqaExpr->agg_expr_id;
-		i ++;
+		i++;
 	}
 
 	/*

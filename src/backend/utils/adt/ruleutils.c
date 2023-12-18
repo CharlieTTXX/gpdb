@@ -9719,19 +9719,39 @@ get_dqa_expr(DQAExpr *dqa_expr,deparse_context *context)
 
 	resetStringInfo(buf);
 	appendStringInfoChar(buf, '(');
-	while ((id = bms_next_member(bm, id)) >= 0)
+	if (dqa_expr->pure)
 	{
-		TargetEntry *te = get_sortgroupref_tle((Index)id, planstate->plan->targetlist);
-		char	   *exprstr;
+		while ((id = bms_next_member(bm, id)) >= 0)
+		{
+			TargetEntry *te = (TargetEntry *)list_nth(planstate->plan->targetlist, id - 1);
+			char	   *exprstr;
 
-		if (!te)
-			elog(ERROR, "no tlist entry for sort key: %d", id);
-		/* Deparse the expression, showing any top-level cast */
-		exprstr = deparse_expression((Node *) te->expr, context->namespaces,
-		                             context->varprefix, true);
+			if (!te)
+				elog(ERROR, "no tlist entry for sort key: %d", id);
+			/* Deparse the expression, showing any top-level cast */
+			exprstr = deparse_expression((Node *) te->expr, context->namespaces,
+										context->varprefix, true);
 
-		appendStringInfoString(buf, exprstr);
-		appendStringInfoChar(buf, ',');
+			appendStringInfoString(buf, exprstr);
+			appendStringInfoChar(buf, ',');
+		}
+	}
+	else
+	{
+		while ((id = bms_next_member(bm, id)) >= 0)
+		{
+			TargetEntry *te = get_sortgroupref_tle((Index)id, planstate->plan->targetlist);
+			char	   *exprstr;
+
+			if (!te)
+				elog(ERROR, "no tlist entry for sort key: %d", id);
+			/* Deparse the expression, showing any top-level cast */
+			exprstr = deparse_expression((Node *) te->expr, context->namespaces,
+										context->varprefix, true);
+
+			appendStringInfoString(buf, exprstr);
+			appendStringInfoChar(buf, ',');
+		}
 	}
 	buf->data[buf->len - 1] = ')';
 

@@ -28,6 +28,7 @@
 #include "naucrates/md/IMDTypeInt4.h"
 #include "gpopt/operators/CLogicalTupSplit.h"
 #include "gpopt/operators/CScalarProjectList.h"
+#include "gpopt/operators/CScalarAggExprId.h"
 
 using namespace gpmd;
 using namespace gpopt;
@@ -410,6 +411,12 @@ CXformGbAggWithMDQA2Join::PexprTupSplitMDQAs(CMemoryPool *mp, CExpression *pexpr
 		}
 	}
 
+	// let's construct pdrgpexprPrElFirstStage
+	CExpression *pexprProjElem = GPOS_NEW(mp) CExpression(
+			mp, GPOS_NEW(mp) CScalarProjectElement(mp, pcrAggexprid),
+			GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarAggExprId(mp)));
+	pdrgpexprPrElFirstStage->Append(pexprProjElem);
+
 	CExpression *pexprGlobal = PexprTupSplitAggregations(
 		mp, pexprRel, pdrgpexprPrElFirstStage,
 		pdrgpexprPrElLastStage, pdrgpcrArgDQA, pdrgpcrGlobal,
@@ -487,8 +494,7 @@ CXformGbAggWithMDQA2Join::PexprTupSplitAggregations(
 
 	CExpression *pexprFirstStage = GPOS_NEW(mp) CExpression(
 		mp, popFirstStage, pexprTupSplit,
-		GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp),
-								 pdrgpexprPrElFirstStage));
+		GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp)));
 
 	CExpression *pexprSecondStage = GPOS_NEW(mp) CExpression(
 		mp, popSecondStage, pexprFirstStage,

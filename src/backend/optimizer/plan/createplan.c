@@ -7388,6 +7388,7 @@ make_tup_split(List *tlist, List *dqa_expr_lst, int numGroupCols,
 	node->numCols    = numGroupCols;
 	node->grpColIdx  = grpColIdx;
 	node->dqa_expr_lst = dqa_expr_lst;
+	node->orca = false;
 
 	plan->targetlist = tlist;
 	plan->lefttree = lefttree;

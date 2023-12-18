@@ -80,6 +80,8 @@ extern "C" {
 #include "naucrates/dxl/operators/CDXLPhysicalRoutedDistributeMotion.h"
 #include "naucrates/dxl/operators/CDXLPhysicalSort.h"
 #include "naucrates/dxl/operators/CDXLPhysicalSplit.h"
+#include "naucrates/dxl/operators/CDXLPhysicalTupSplit.h"
+#include "naucrates/dxl/operators/CDXLPhysicalSubqueryScan.h"
 #include "naucrates/dxl/operators/CDXLPhysicalTVF.h"
 #include "naucrates/dxl/operators/CDXLPhysicalTableScan.h"
 #include "naucrates/dxl/operators/CDXLPhysicalValuesScan.h"
@@ -482,6 +484,12 @@ CTranslatorDXLToPlStmt::TranslateDXLOperatorToPlan(
 		{
 			plan = TranslateDXLSplit(dxlnode, output_context,
 									 ctxt_translation_prev_siblings);
+			break;
+		}
+		case EdxlopPhysicalTupSplit:
+		{
+			plan = TranslateDXLTupSplit(dxlnode, output_context,
+										ctxt_translation_prev_siblings);
 			break;
 		}
 		case EdxlopPhysicalAssert:
@@ -5001,6 +5009,108 @@ CTranslatorDXLToPlStmt::TranslateDXLSplit(
 	}
 
 	split->actionColIdx = te_action_col->resno;
+
+	plan->lefttree = child_plan;
+	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+
+	SetParamIds(plan);
+
+	// cleanup
+	child_contexts->Release();
+
+	// translate operator costs
+	TranslatePlanCosts(split_dxlnode, plan);
+
+	return (Plan *) split;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorDXLToPlStmt::TranslateDXLTupSplit
+//
+//	@doc:
+//		Translates a DXL TupSplit node
+//
+//---------------------------------------------------------------------------
+Plan *
+CTranslatorDXLToPlStmt::TranslateDXLTupSplit(
+	const CDXLNode *split_dxlnode, CDXLTranslateContext *output_context,
+	CDXLTranslationContextArray *ctxt_translation_prev_siblings)
+{
+	CDXLPhysicalTupSplit *phy_split_dxlop =
+		CDXLPhysicalTupSplit::Cast(split_dxlnode->GetOperator());
+
+	// create SplitUpdate node
+	TupleSplit *split = MakeNode(TupleSplit);
+	Plan *plan = &(split->plan);
+
+	CDXLNode *project_list_dxlnode = (*split_dxlnode)[0];
+	CDXLNode *child_dxlnode = (*split_dxlnode)[1];
+
+	CDXLTranslateContext child_context(m_mp, false,
+									   output_context->GetColIdToParamIdMap());
+
+	Plan *child_plan = TranslateDXLOperatorToPlan(
+		child_dxlnode, &child_context, ctxt_translation_prev_siblings);
+
+	CDXLTranslationContextArray *child_contexts =
+		GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
+	child_contexts->Append(&child_context);
+
+	// translate proj list and filter
+	plan->targetlist =
+		TranslateDXLProjList(project_list_dxlnode,
+							 nullptr,  // translate context for the base table
+							 child_contexts, output_context);
+
+	// translate delete and insert columns
+	ULongPtrArray *dqexprs =
+		phy_split_dxlop->GetDQAExprArray();
+	ULongPtrArray *groups =
+		phy_split_dxlop->GetGroupArray();
+
+	const ULONG grouplens = groups->Size();
+	const ULONG dqalens = dqexprs->Size();
+	split->grpColIdx = (AttrNumber *) gpdb::GPDBAlloc(grouplens * sizeof(AttrNumber));
+
+	int num = 0;
+	for (ULONG ul = 0; ul < grouplens; ul++)
+	{
+		ULONG grouping_colid = *((*groups)[ul]);
+		const TargetEntry *target_entry_grouping_col =
+			child_context.GetTargetEntry(grouping_colid);
+		if (nullptr == target_entry_grouping_col)
+		{
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtAttributeNotFound,
+					   grouping_colid);
+		}
+		split->grpColIdx[ul] = target_entry_grouping_col->resno;
+		num++;
+	}
+	split->numCols = num;
+
+	// construct DQAEXpr
+	Index aggexprid = 1;
+	for (ULONG ul = 0; ul < dqalens; ul++)
+	{
+		ULONG grouping_colid = *((*dqexprs)[ul]);
+		const TargetEntry *target_entry_grouping_col =
+			child_context.GetTargetEntry(grouping_colid);
+		if (nullptr == target_entry_grouping_col)
+		{
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtAttributeNotFound,
+					   grouping_colid);
+		}
+
+		DQAExpr *dqa = MakeNode(DQAExpr);
+		dqa->agg_expr_id = aggexprid;
+		dqa->agg_args_id_bms = gpdb::BmsAddMember(dqa->agg_args_id_bms, target_entry_grouping_col->resno);
+
+		split->dqa_expr_lst = gpdb::LAppend(split->dqa_expr_lst, dqa);
+		aggexprid++;
+	}
+
+	split->orca = true;
 
 	plan->lefttree = child_plan;
 	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();

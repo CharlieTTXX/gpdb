@@ -252,6 +252,7 @@ CDXLTokens::Init(CMemoryPool *mp)
 		{EdxltokenScalarSubqueryNotExists, GPOS_WSZ_LIT("SubqueryNotExists")},
 
 		{EdxltokenScalarDMLAction, GPOS_WSZ_LIT("DMLAction")},
+		{EdxltokenScalarAggExprId, GPOS_WSZ_LIT("AggExprId")},
 		{EdxltokenScalarOpList, GPOS_WSZ_LIT("ScalarOpList")},
 
 		{EdxltokenScalarSubPlanType, GPOS_WSZ_LIT("SubPlanType")},

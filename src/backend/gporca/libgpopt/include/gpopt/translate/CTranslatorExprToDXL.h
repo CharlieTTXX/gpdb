@@ -538,6 +538,9 @@ private:
 	// translate a DML action expression
 	CDXLNode *PdxlnDMLAction(CExpression *pexpr);
 
+	// translate a DML AggExprId expression
+	CDXLNode *PdxlnAggExprId(CExpression *pexpr);
+
 	// translate a window frame
 	CDXLWindowFrame *GetWindowFrame(CWindowFrame *pwf);
 

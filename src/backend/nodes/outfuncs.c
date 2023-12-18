@@ -1103,6 +1103,7 @@ _outTupleSplit(StringInfo str, const TupleSplit *node)
 	WRITE_INT_FIELD(numCols);
 	WRITE_ATTRNUMBER_ARRAY(grpColIdx, node->numCols);
 	WRITE_NODE_FIELD(dqa_expr_lst);
+	WRITE_BOOL_FIELD(orca);
 }
 
 static void

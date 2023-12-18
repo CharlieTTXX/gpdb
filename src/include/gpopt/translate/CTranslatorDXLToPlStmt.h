@@ -391,6 +391,13 @@ private:
 			ctxt_translation_prev_siblings	// translation contexts of previous siblings
 	);
 
+	// translate a TupSplit operator
+	Plan *TranslateDXLTupSplit(
+		const CDXLNode *split_dxlnode, CDXLTranslateContext *output_context,
+		CDXLTranslationContextArray *
+			ctxt_translation_prev_siblings	// translation contexts of previous siblings
+	);
+
 	// translate an Assert operator
 	Plan *TranslateDXLAssert(
 		const CDXLNode *assert_dxlnode, CDXLTranslateContext *output_context,
