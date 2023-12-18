@@ -198,6 +198,12 @@ public:
 		return m_argtypes;
 	}
 
+	ULONG
+	GetAggExprId()
+	{
+		return m_aggexprid;
+	}
+
 	// stage of the aggregate function
 	EAggfuncStage
 	Eaggfuncstage() const

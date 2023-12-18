@@ -9723,7 +9723,7 @@ get_dqa_expr(DQAExpr *dqa_expr,deparse_context *context)
 	{
 		while ((id = bms_next_member(bm, id)) >= 0)
 		{
-			TargetEntry *te = (TargetEntry *)list_nth(planstate->plan->targetlist, id - 1);
+			TargetEntry *te = (TargetEntry *)list_nth(planstate->plan->lefttree->targetlist, id - 1);
 			char	   *exprstr;
 
 			if (!te)

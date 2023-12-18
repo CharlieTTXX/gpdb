@@ -35,14 +35,16 @@ CDXLScalarAggref::CDXLScalarAggref(CMemoryPool *mp, IMDId *agg_func_mdid,
 								   IMDId *resolved_rettype_mdid,
 								   BOOL is_distinct, EdxlAggrefStage agg_stage,
 								   EdxlAggrefKind aggkind,
-								   ULongPtrArray *argtypes)
+								   ULongPtrArray *argtypes,
+								   ULONG aggexprid)
 	: CDXLScalar(mp),
 	  m_agg_func_mdid(agg_func_mdid),
 	  m_resolved_rettype_mdid(resolved_rettype_mdid),
 	  m_is_distinct(is_distinct),
 	  m_agg_stage(agg_stage),
 	  m_aggkind(aggkind),
-	  m_argtypes(argtypes)
+	  m_argtypes(argtypes),
+	  m_aggexprid(aggexprid)
 {
 	GPOS_ASSERT(nullptr != agg_func_mdid);
 	GPOS_ASSERT_IMP(nullptr != resolved_rettype_mdid,
@@ -193,6 +195,12 @@ BOOL
 CDXLScalarAggref::IsDistinct() const
 {
 	return m_is_distinct;
+}
+
+ULONG
+CDXLScalarAggref::GetAggExprId() const
+{
+	return m_aggexprid;
 }
 
 //---------------------------------------------------------------------------

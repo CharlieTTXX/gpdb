@@ -553,6 +553,7 @@ CTranslatorDXLToScalar::TranslateDXLScalarAggrefToScalar(
 	aggref->location = -1;
 	aggref->aggtranstype = InvalidOid;
 	aggref->aggargtypes = NIL;
+	aggref->agg_expr_id = dxlop->GetAggExprId();
 
 	CMDIdGPDB *agg_mdid =
 		GPOS_NEW(m_mp) CMDIdGPDB(IMDId::EmdidGeneral, aggref->aggfnoid);
