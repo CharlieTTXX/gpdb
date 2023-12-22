@@ -36,6 +36,7 @@ CPhysicalHashAggDeduplicate::CPhysicalHashAggDeduplicate(
 	CLogicalGbAgg::EAggStage aggStage, BOOL should_enforce_distribution)
 	: CPhysicalHashAgg(mp, colref_array, pdrgpcrMinimal, egbaggtype,
 					   fGeneratesDuplicates, nullptr /*pdrgpcrGbMinusDistinct*/,
+					   nullptr,
 					   fMultiStage, isAggFromSplitDQA, aggStage,
 					   should_enforce_distribution),
 	  m_pdrgpcrKeys(pdrgpcrKeys)

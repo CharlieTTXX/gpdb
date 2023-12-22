@@ -39,6 +39,7 @@ public:
 					 CColRefArray *pdrgpcrMinimal,
 					 COperator::EGbAggType egbaggtype,
 					 BOOL fGeneratesDuplicates, CColRefArray *pdrgpcrArgDQA,
+					 CColRef *aggexprid,
 					 BOOL fMultiStage, BOOL isAggFromSplitDQA,
 					 CLogicalGbAgg::EAggStage aggStage,
 					 BOOL should_enforce_distribution = true

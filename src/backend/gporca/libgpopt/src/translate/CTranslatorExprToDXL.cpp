@@ -2921,10 +2921,11 @@ CTranslatorExprToDXL::PdxlnAggregate(CExpression *pexprAgg,
 	}
 
 	const CColRefArray *pdrgpcrGroupingCols = popAgg->PdrgpcrGroupingCols();
+	CColRef *aggexprid = popAgg->GetAggExprId();
 
 	return PdxlnAggregate(pexprAgg, colref_array, pdrgpdsBaseTables,
 						  pulNonGatherMotions, pfDML, dxl_agg_strategy,
-						  pdrgpcrGroupingCols, nullptr /*pcrsKeys*/
+						  pdrgpcrGroupingCols, nullptr /*pcrsKeys*/, aggexprid
 	);
 }
 
@@ -2971,7 +2972,7 @@ CTranslatorExprToDXL::PdxlnAggregateDedup(
 
 	CDXLNode *pdxlnAgg = PdxlnAggregate(
 		pexprAgg, colref_array, pdrgpdsBaseTables, pulNonGatherMotions, pfDML,
-		dxl_agg_strategy, pdrgpcrGroupingCols, pcrsKeys);
+		dxl_agg_strategy, pdrgpcrGroupingCols, pcrsKeys, nullptr);
 	pcrsKeys->Release();
 
 	return pdxlnAgg;
@@ -2992,7 +2993,7 @@ CTranslatorExprToDXL::PdxlnAggregate(CExpression *pexprAgg,
 									 ULONG *pulNonGatherMotions, BOOL *pfDML,
 									 EdxlAggStrategy dxl_agg_strategy,
 									 const CColRefArray *pdrgpcrGroupingCols,
-									 CColRefSet *pcrsKeys)
+									 CColRefSet *pcrsKeys, CColRef *aggexprid)
 {
 	GPOS_ASSERT(nullptr != pexprAgg);
 	GPOS_ASSERT(nullptr != pdrgpcrGroupingCols);
@@ -3085,6 +3086,8 @@ CTranslatorExprToDXL::PdxlnAggregate(CExpression *pexprAgg,
 	CDXLPhysicalAgg *pdxlopAgg =
 		GPOS_NEW(m_mp) CDXLPhysicalAgg(m_mp, dxl_agg_strategy, stream_safe);
 	pdxlopAgg->SetGroupingCols(pdrgpulGroupingCols);
+	if (aggexprid != nullptr)
+		pdxlopAgg->SetAggExprId(aggexprid->Id());
 
 	CDXLNode *pdxlnAgg = GPOS_NEW(m_mp) CDXLNode(m_mp, pdxlopAgg);
 	CDXLPhysicalProperties *dxl_properties = GetProperties(pexprAgg);

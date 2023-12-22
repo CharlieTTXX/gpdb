@@ -99,7 +99,7 @@ public:
 				   IMDId *resolved_rettype, const CWStringConst *pstrAggFunc,
 				   BOOL is_distinct, EAggfuncStage eaggfuncstage, BOOL fSplit,
 				   EAggfuncKind aggkind, ULongPtrArray *argtypes,
-				   BOOL fRepSafe);
+				   BOOL fRepSafe, ULONG aggexprid);
 
 	// dtor
 	~CScalarAggFunc() override
@@ -178,12 +178,6 @@ public:
 	SetIsDistinct(BOOL val)
 	{
 		m_is_distinct = val;
-	}
-
-	void
-	SetAggexprid(ULONG val)
-	{
-		m_aggexprid = val;
 	}
 
 	EAggfuncKind

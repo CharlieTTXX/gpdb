@@ -2879,6 +2879,11 @@ CTranslatorDXLToPlStmt::TranslateDXLAgg(
 		Assert(agg->grpOperators[ul] != 0);
 	}
 
+	ULONG aggexprid = dxl_phy_agg_dxlop->GetAggExprid();
+	const TargetEntry *target_aggexprid = child_context.GetTargetEntry(aggexprid);
+	if (aggexprid != 0)
+		agg->agg_expr_id = target_aggexprid->resno;
+
 	agg->numGroups =
 		std::max(1L, (long) std::min(agg->plan.plan_rows, (double) LONG_MAX));
 	SetParamIds(plan);

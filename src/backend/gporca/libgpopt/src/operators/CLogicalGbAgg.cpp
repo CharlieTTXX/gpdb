@@ -62,7 +62,8 @@ CLogicalGbAgg::CLogicalGbAgg(CMemoryPool *mp, CColRefArray *colref_array,
 	  m_pdrgpcr(colref_array),
 	  m_pdrgpcrMinimal(nullptr),
 	  m_egbaggtype(egbaggtype),
-	  m_aggStage(EasOthers)
+	  m_aggStage(EasOthers),
+	  m_aggexprid(nullptr)
 {
 	if (COperator::EgbaggtypeLocal == egbaggtype)
 	{
@@ -79,14 +80,15 @@ CLogicalGbAgg::CLogicalGbAgg(CMemoryPool *mp, CColRefArray *colref_array,
 
 CLogicalGbAgg::CLogicalGbAgg(CMemoryPool *mp, CColRefArray *colref_array,
 							 COperator::EGbAggType egbaggtype,
-							 EAggStage aggStage)
+							 EAggStage aggStage, CColRef *aggexprid)
 	: CLogicalUnary(mp),
 	  m_fGeneratesDuplicates(false),
 	  m_pdrgpcrArgDQA(nullptr),
 	  m_pdrgpcr(colref_array),
 	  m_pdrgpcrMinimal(nullptr),
 	  m_egbaggtype(egbaggtype),
-	  m_aggStage(aggStage)
+	  m_aggStage(aggStage),
+	  m_aggexprid(aggexprid)
 {
 	if (COperator::EgbaggtypeLocal == egbaggtype)
 	{
@@ -120,7 +122,8 @@ CLogicalGbAgg::CLogicalGbAgg(CMemoryPool *mp, CColRefArray *colref_array,
 	  m_pdrgpcr(colref_array),
 	  m_pdrgpcrMinimal(nullptr),
 	  m_egbaggtype(egbaggtype),
-	  m_aggStage(EasOthers)
+	  m_aggStage(EasOthers),
+	  m_aggexprid(nullptr)
 {
 	GPOS_ASSERT(nullptr != colref_array);
 	GPOS_ASSERT(COperator::EgbaggtypeSentinel > egbaggtype);
@@ -142,7 +145,8 @@ CLogicalGbAgg::CLogicalGbAgg(CMemoryPool *mp, CColRefArray *colref_array,
 	  m_pdrgpcr(colref_array),
 	  m_pdrgpcrMinimal(nullptr),
 	  m_egbaggtype(egbaggtype),
-	  m_aggStage(aggStage)
+	  m_aggStage(aggStage),
+	  m_aggexprid(nullptr)
 {
 	GPOS_ASSERT(nullptr != colref_array);
 	GPOS_ASSERT(COperator::EgbaggtypeSentinel > egbaggtype);
@@ -164,14 +168,16 @@ CLogicalGbAgg::CLogicalGbAgg(CMemoryPool *mp, CColRefArray *colref_array,
 //---------------------------------------------------------------------------
 CLogicalGbAgg::CLogicalGbAgg(CMemoryPool *mp, CColRefArray *colref_array,
 							 CColRefArray *pdrgpcrMinimal,
-							 COperator::EGbAggType egbaggtype)
+							 COperator::EGbAggType egbaggtype,
+							 CColRef *aggexprid)
 	: CLogicalUnary(mp),
 	  m_fGeneratesDuplicates(true),
 	  m_pdrgpcrArgDQA(nullptr),
 	  m_pdrgpcr(colref_array),
 	  m_pdrgpcrMinimal(pdrgpcrMinimal),
 	  m_egbaggtype(egbaggtype),
-	  m_aggStage(EasOthers)
+	  m_aggStage(EasOthers),
+	  m_aggexprid(aggexprid)
 {
 	GPOS_ASSERT(nullptr != colref_array);
 	GPOS_ASSERT(COperator::EgbaggtypeSentinel > egbaggtype);
@@ -209,7 +215,8 @@ CLogicalGbAgg::CLogicalGbAgg(CMemoryPool *mp, CColRefArray *colref_array,
 	  m_pdrgpcr(colref_array),
 	  m_pdrgpcrMinimal(pdrgpcrMinimal),
 	  m_egbaggtype(egbaggtype),
-	  m_aggStage(EasOthers)
+	  m_aggStage(EasOthers),
+	  m_aggexprid(nullptr)
 {
 	GPOS_ASSERT(nullptr != colref_array);
 	GPOS_ASSERT(COperator::EgbaggtypeSentinel > egbaggtype);

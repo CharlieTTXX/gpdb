@@ -34,7 +34,7 @@ CPhysicalStreamAggDeduplicate::CPhysicalStreamAggDeduplicate(
 	CLogicalGbAgg::EAggStage aggStage, BOOL should_enforce_distribution)
 	: CPhysicalStreamAgg(
 		  mp, colref_array, pdrgpcrMinimal, egbaggtype, fGeneratesDuplicates,
-		  nullptr /*pdrgpcrGbMinusDistinct*/, fMultiStage, isAggFromSplitDQA,
+		  nullptr /*pdrgpcrGbMinusDistinct*/, nullptr, fMultiStage, isAggFromSplitDQA,
 		  aggStage, should_enforce_distribution),
 	  m_pdrgpcrKeys(pdrgpcrKeys)
 {

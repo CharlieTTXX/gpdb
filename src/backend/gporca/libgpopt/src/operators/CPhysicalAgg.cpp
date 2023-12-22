@@ -38,7 +38,7 @@ CPhysicalAgg::CPhysicalAgg(
 	CMemoryPool *mp, CColRefArray *colref_array,
 	CColRefArray *pdrgpcrMinimal,  // minimal grouping columns based on FD's
 	COperator::EGbAggType egbaggtype, BOOL fGeneratesDuplicates,
-	CColRefArray *pdrgpcrArgDQA, BOOL fMultiStage, BOOL isAggFromSplitDQA,
+	CColRefArray *pdrgpcrArgDQA, CColRef *aggexprid, BOOL fMultiStage, BOOL isAggFromSplitDQA,
 	CLogicalGbAgg::EAggStage aggStage, BOOL should_enforce_distribution)
 	: CPhysical(mp),
 	  m_pdrgpcr(colref_array),
@@ -48,6 +48,7 @@ CPhysicalAgg::CPhysicalAgg(
 	  m_pdrgpcrMinimal(nullptr),
 	  m_fGeneratesDuplicates(fGeneratesDuplicates),
 	  m_pdrgpcrArgDQA(pdrgpcrArgDQA),
+	  m_aggexprid(aggexprid),
 	  m_fMultiStage(fMultiStage),
 	  m_should_enforce_distribution(should_enforce_distribution)
 {

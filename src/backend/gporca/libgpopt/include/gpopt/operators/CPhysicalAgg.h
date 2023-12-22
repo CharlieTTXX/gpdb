@@ -74,6 +74,8 @@ protected:
 	// used only in the case of intermediate aggregates
 	CColRefArray *m_pdrgpcrArgDQA;
 
+	CColRef *m_aggexprid;
+
 	// is agg part of multi-stage aggregation
 	BOOL m_fMultiStage;
 
@@ -109,7 +111,7 @@ public:
 	CPhysicalAgg(CMemoryPool *mp, CColRefArray *colref_array,
 				 CColRefArray *pdrgpcrMinimal,	// FD's on grouping columns
 				 COperator::EGbAggType egbaggtype, BOOL fGeneratesDuplicates,
-				 CColRefArray *pdrgpcrArgDQA, BOOL fMultiStage,
+				 CColRefArray *pdrgpcrArgDQA, CColRef *aggexprid, BOOL fMultiStage,
 				 BOOL isAggFromSplitDQA, CLogicalGbAgg::EAggStage aggStage,
 				 BOOL should_enforce_distribution);
 
@@ -143,6 +145,12 @@ public:
 	PdrgpcrArgDQA() const
 	{
 		return m_pdrgpcrArgDQA;
+	}
+
+	CColRef *
+	GetAggExprId()
+	{
+		return m_aggexprid;
 	}
 
 	// aggregate type

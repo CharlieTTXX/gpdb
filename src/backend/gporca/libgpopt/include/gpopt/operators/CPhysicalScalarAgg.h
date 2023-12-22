@@ -39,7 +39,7 @@ public:
 		CMemoryPool *mp, CColRefArray *colref_array,
 		CColRefArray *pdrgpcrMinimal,  // minimal grouping columns based on FD's
 		COperator::EGbAggType egbaggtype, BOOL fGeneratesDuplicates,
-		CColRefArray *pdrgpcrArgDQA, BOOL fMultiStage, BOOL isAggFromSplitDQA,
+		CColRefArray *pdrgpcrArgDQA, CColRef *aggexprid, BOOL fMultiStage, BOOL isAggFromSplitDQA,
 		CLogicalGbAgg::EAggStage aggStage, BOOL should_enforce_distribution);
 
 	// dtor

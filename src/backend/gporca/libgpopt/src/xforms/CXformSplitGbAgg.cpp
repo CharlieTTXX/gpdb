@@ -150,18 +150,19 @@ CXformSplitGbAgg::Transform(CXformContext *pxfctxt, CXformResult *pxfres,
 		pdrgpcrMinimal->AddRef();
 	}
 
+	CColRef *aggexprid = popAgg->GetAggExprId();
 	CExpression *local_expr = GPOS_NEW(mp) CExpression(
 		mp,
 		GPOS_NEW(mp) CLogicalGbAgg(mp, pdrgpcrLocal, pdrgpcrMinimal,
-								   COperator::EgbaggtypeLocal /*egbaggtype*/
-								   ),
+								   COperator::EgbaggtypeLocal, /*egbaggtype*/
+								   aggexprid),
 		pexprRelational, pexprProjectListLocal);
 
 	CExpression *pexprGlobal = GPOS_NEW(mp) CExpression(
 		mp,
 		GPOS_NEW(mp) CLogicalGbAgg(mp, pdrgpcrGlobal, pdrgpcrMinimal,
-								   COperator::EgbaggtypeGlobal /*egbaggtype*/
-								   ),
+								   COperator::EgbaggtypeGlobal, /*egbaggtype*/
+								   nullptr),
 		local_expr, pexprProjectListGlobal);
 
 	pxfres->Add(pexprGlobal);
@@ -209,7 +210,7 @@ CXformSplitGbAgg::PopulateLocalGlobalProjectList(
 			popScAggFunc->IsDistinct(), EaggfuncstageLocal, /* fGlobal */
 			true /* fSplit */, nullptr /* pmdidResolvedReturnType */,
 			EaggfunckindNormal, popScAggFunc->GetArgTypes(),
-			popScAggFunc->FRepSafe());
+			popScAggFunc->FRepSafe(), popScAggFunc->GetAggExprId());
 
 		popScAggFunc->MDId()->AddRef();
 		popScAggFunc->GetArgTypes()->AddRef();
@@ -220,7 +221,7 @@ CXformSplitGbAgg::PopulateLocalGlobalProjectList(
 			false /* is_distinct */, EaggfuncstageGlobal, /* fGlobal */
 			true /* fSplit */, nullptr /* pmdidResolvedReturnType */,
 			EaggfunckindNormal, popScAggFunc->GetArgTypes(),
-			popScAggFunc->FRepSafe());
+			popScAggFunc->FRepSafe(), 0);
 
 		// determine column reference for the new project element
 		const IMDAggregate *pmdagg =

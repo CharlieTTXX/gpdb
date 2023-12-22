@@ -67,7 +67,8 @@ public:
 
 	// ctor
 	CLogicalGbAgg(CMemoryPool *mp, CColRefArray *colref_array,
-				  COperator::EGbAggType egbaggtype, EAggStage aggStage);
+				  COperator::EGbAggType egbaggtype, EAggStage aggStage,
+				  CColRef *aggexprid);
 
 	// ctor
 	CLogicalGbAgg(CMemoryPool *mp, CColRefArray *colref_array,
@@ -86,7 +87,7 @@ public:
 	// ctor
 	CLogicalGbAgg(CMemoryPool *mp, CColRefArray *colref_array,
 				  CColRefArray *pdrgpcrMinimal,
-				  COperator::EGbAggType egbaggtype);
+				  COperator::EGbAggType egbaggtype, CColRef *aggexprid);
 
 	// ctor
 	CLogicalGbAgg(CMemoryPool *mp, CColRefArray *colref_array,
@@ -170,6 +171,12 @@ public:
 	PdrgpcrMinimal() const
 	{
 		return m_pdrgpcrMinimal;
+	}
+
+	CColRef *
+	GetAggExprId() const
+	{
+		return m_aggexprid;
 	}
 
 	// return a copy of the operator with remapped columns
@@ -283,6 +290,8 @@ private:
 
 	// which type of multi-stage agg it is
 	EAggStage m_aggStage;
+
+	CColRef *m_aggexprid;
 
 };	// class CLogicalGbAgg
 

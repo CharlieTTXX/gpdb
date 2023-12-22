@@ -31,7 +31,8 @@ CDXLPhysicalAgg::CDXLPhysicalAgg(CMemoryPool *mp,
 	: CDXLPhysical(mp),
 	  m_grouping_colids_array(nullptr),
 	  m_dxl_agg_strategy(dxl_agg_strategy),
-	  m_stream_safe(stream_safe)
+	  m_stream_safe(stream_safe),
+	  m_aggexprid(0)
 {
 	GPOS_ASSERT_IMP(stream_safe, (EdxlaggstrategyHashed == dxl_agg_strategy));
 }

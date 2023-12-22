@@ -349,9 +349,8 @@ CXformGbAggWithMDQA2Join::PexprTupSplitMDQAs(CMemoryPool *mp, CExpression *pexpr
 				false /* is_distinct */, EaggfuncstageGlobal /*eaggfuncstage*/,
 				false /* fSplit */, nullptr /* pmdidResolvedReturnType */,
 				EaggfunckindNormal, popScAggFunc->GetArgTypes(),
-				popScAggFunc->FRepSafe());
+				popScAggFunc->FRepSafe(), aggexprid);
 
-			popScAggFuncNew->SetAggexprid(aggexprid);
 			aggexprid++;
 
 			CExpressionArray *pdrgpexprChildren =
@@ -484,7 +483,7 @@ CXformGbAggWithMDQA2Join::PexprTupSplitAggregations(
 	pdrgpcrLastStage->AddRef();
 	popSecondStage = GPOS_NEW(mp) CLogicalGbAgg(
 		mp, pdrgpcrLastStage, COperator::EgbaggtypeGlobal, /* egbaggtype */
-		CLogicalGbAgg::EasOthers);;
+		CLogicalGbAgg::EasOthers, aggexprid);;
 
 	pexprRelational->AddRef();
 	CExpression *pexprTupSplit = GPOS_NEW(mp) CExpression(

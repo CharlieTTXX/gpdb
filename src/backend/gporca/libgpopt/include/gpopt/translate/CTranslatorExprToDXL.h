@@ -232,7 +232,7 @@ private:
 							 ULONG *pulNonGatherMotions, BOOL *pfDML,
 							 EdxlAggStrategy dxl_agg_strategy,
 							 const CColRefArray *pdrgpcrGroupingCols,
-							 CColRefSet *pcrsKeys);
+							 CColRefSet *pcrsKeys, CColRef *aggexprid);
 
 	CDXLNode *PdxlnSort(CExpression *pexprSort, CColRefArray *colref_array,
 						CDistributionSpecArray *pdrgpdsBaseTables,

@@ -60,6 +60,8 @@ private:
 	// is it safe to stream the local hash aggregate
 	BOOL m_stream_safe;
 
+	ULONG m_aggexprid;
+
 	// serialize output grouping columns indices in DXL
 	void SerializeGroupingColsToDXL(CXMLSerializer *xml_serializer) const;
 
@@ -82,6 +84,16 @@ public:
 
 	// set grouping column indices
 	void SetGroupingCols(ULongPtrArray *);
+
+	void SetAggExprId(ULONG id)
+	{
+		m_aggexprid = id;
+	}
+
+	ULONG GetAggExprid()
+	{
+		return m_aggexprid;
+	}
 
 	// is aggregate a hash aggregate that it safe to stream
 	BOOL

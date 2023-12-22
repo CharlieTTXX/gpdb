@@ -199,7 +199,7 @@ CXformSimplifyGbAgg::Transform(CXformContext *pxfctxt, CXformResult *pxfres,
 	colref_array->AddRef();
 
 	CLogicalGbAgg *popAggNew = GPOS_NEW(mp) CLogicalGbAgg(
-		mp, colref_array, pcrsMinimal->Pdrgpcr(mp), popAgg->Egbaggtype());
+		mp, colref_array, pcrsMinimal->Pdrgpcr(mp), popAgg->Egbaggtype(), popAgg->GetAggExprId());
 	pcrsMinimal->Release();
 	GPOS_ASSERT(!popAgg->Matches(popAggNew) &&
 				"Simplified aggregate matches original aggregate");

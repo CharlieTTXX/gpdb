@@ -104,7 +104,7 @@ CXformGbAgg2ScalarAgg::Transform(CXformContext *pxfctxt, CXformResult *pxfres,
 		mp,
 		GPOS_NEW(mp) CPhysicalScalarAgg(
 			mp, colref_array, popAgg->PdrgpcrMinimal(), popAgg->Egbaggtype(),
-			popAgg->FGeneratesDuplicates(), pdrgpcrArgDQA,
+			popAgg->FGeneratesDuplicates(), pdrgpcrArgDQA, popAgg->GetAggExprId(),
 			CXformUtils::FMultiStageAgg(pexpr),
 			CXformUtils::FAggGenBySplitDQAXform(pexpr), popAgg->AggStage(),
 			!CXformUtils::FLocalAggCreatedByEagerAggXform(pexpr)),
