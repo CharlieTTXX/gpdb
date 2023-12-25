@@ -2881,7 +2881,7 @@ CTranslatorDXLToPlStmt::TranslateDXLAgg(
 
 	ULONG aggexprid = dxl_phy_agg_dxlop->GetAggExprid();
 	const TargetEntry *target_aggexprid = child_context.GetTargetEntry(aggexprid);
-	if (aggexprid != 0)
+	if (aggexprid != 0 && target_aggexprid != NULL)
 		agg->agg_expr_id = target_aggexprid->resno;
 
 	agg->numGroups =

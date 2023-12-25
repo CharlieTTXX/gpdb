@@ -296,7 +296,7 @@ COptimizationContext::FOptimizeAgg(CGroupExpression *,	// pgexprParent
 	GPOS_ASSERT(nullptr != pgexprAgg);
 	GPOS_ASSERT(CUtils::FPhysicalAgg(pgexprAgg->Pop()));
 
-	if (GPOS_FTRACE(EopttraceForceExpandedMDQAs))
+	if (GPOS_FTRACE(EopttraceForceExpandedMDQAs) || GPOS_FTRACE(EopttraceForceTupSplitMDQAs))
 	{
 		BOOL fHasMultipleDistinctAggs =
 			CDrvdPropScalar::GetDrvdScalarProps((*pgexprAgg)[1]->Pdp())

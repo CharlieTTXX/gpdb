@@ -49,6 +49,7 @@
 #include "gpopt/xforms/CXformGbAggDedup2HashAggDedup.h"
 #include "gpopt/xforms/CXformGbAggDedup2StreamAggDedup.h"
 #include "gpopt/xforms/CXformGbAggWithMDQA2Join.h"
+#include "gpopt/xforms/CXformGbAggWithMDQA2TupSplit.h"
 #include "gpopt/xforms/CXformGet2TableScan.h"
 #include "gpopt/xforms/CXformImplementAssert.h"
 #include "gpopt/xforms/CXformImplementBitmapTableGet.h"

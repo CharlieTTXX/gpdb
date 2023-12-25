@@ -223,6 +223,9 @@ enum EOptTraceFlag
 	// Ordered Agg
 	EopttraceDisableOrderedAgg = 103047,
 
+	// Always pick plans that apply multiple distinct qualified aggregates strategy
+	EopttraceForceTupSplitMDQAs = 103048,
+
 	///////////////////////////////////////////////////////
 	///////////////////// statistics flags ////////////////
 	//////////////////////////////////////////////////////

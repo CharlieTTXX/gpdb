@@ -301,6 +301,7 @@ CXformFactory::Instantiate()
 	Add(GPOS_NEW(m_mp) CXformSelect2DynamicIndexOnlyGet(m_mp));
 	Add(GPOS_NEW(m_mp) CXformLimit2IndexOnlyGet(m_mp));
 	Add(GPOS_NEW(m_mp) CXformImplementTupSplit(m_mp));
+	Add(GPOS_NEW(m_mp) CXformGbAggWithMDQA2TupSplit(m_mp));
 
 	GPOS_ASSERT(nullptr != m_rgpxf[CXform::ExfSentinel - 1] &&
 				"Not all xforms have been instantiated");

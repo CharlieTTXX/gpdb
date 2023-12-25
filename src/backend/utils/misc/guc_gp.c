@@ -376,6 +376,7 @@ int			optimizer_skew_factor;
 bool		optimizer_force_multistage_agg;
 bool		optimizer_force_three_stage_scalar_dqa;
 bool		optimizer_force_expanded_distinct_aggs;
+bool		optimizer_force_tupsplit_distinct_aggs;
 bool		optimizer_force_agg_skew_avoidance;
 bool		optimizer_penalize_skew;
 bool		optimizer_prune_computed_columns;
@@ -2396,6 +2397,17 @@ struct config_bool ConfigureNamesBool_gp[] =
 		},
 		&optimizer_force_expanded_distinct_aggs,
 		true,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"optimizer_force_tupsplit_distinct_aggs", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("Always pick plans that own multiple distinct aggregates tupsplit strategy in the optimizer."),
+			NULL,
+			GUC_NOT_IN_SAMPLE
+		},
+		&optimizer_force_tupsplit_distinct_aggs,
+		false,
 		NULL, NULL, NULL
 	},
 

@@ -235,6 +235,7 @@ public:
 		ExfSelect2DynamicIndexOnlyGet,
 		ExfLimit2IndexOnlyGet,
 		ExfImplementTupSplit,
+		ExfGbAggWithMDQA2TupSplit,
 		ExfInvalid,
 		ExfSentinel = ExfInvalid
 	};

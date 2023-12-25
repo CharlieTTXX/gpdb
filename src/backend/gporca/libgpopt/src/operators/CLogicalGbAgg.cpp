@@ -593,6 +593,7 @@ CLogicalGbAgg::PxfsCandidates(CMemoryPool *mp) const
 
 	(void) xform_set->ExchangeSet(CXform::ExfSimplifyGbAgg);
 	(void) xform_set->ExchangeSet(CXform::ExfGbAggWithMDQA2Join);
+	(void) xform_set->ExchangeSet(CXform::ExfGbAggWithMDQA2TupSplit);
 	(void) xform_set->ExchangeSet(CXform::ExfCollapseGbAgg);
 	(void) xform_set->ExchangeSet(CXform::ExfPushGbBelowJoin);
 	(void) xform_set->ExchangeSet(CXform::ExfPushGbBelowUnion);

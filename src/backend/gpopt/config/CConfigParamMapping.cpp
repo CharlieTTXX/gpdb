@@ -236,6 +236,11 @@ CConfigParamMapping::SConfigMappingElem CConfigParamMapping::m_elements[] = {
 	 false,	 // m_negate_param
 	 GPOS_WSZ_LIT(
 		 "Always pick plans that expand multiple distinct aggregates into join of single distinct aggregate in the optimizer")},
+	{EopttraceForceTupSplitMDQAs, &optimizer_force_tupsplit_distinct_aggs,
+	 false,	 // m_negate_param
+	 GPOS_WSZ_LIT(
+		 "Always pick plans that apply multiple distinct aggregates tupsplit strategy")},
+
 	{EopttraceDisablePushingCTEConsumerReqsToCTEProducer,
 	 &optimizer_push_requirements_from_consumer_to_producer,
 	 true,	// m_negate_param
@@ -524,6 +529,21 @@ CConfigParamMapping::PackConfigParamInBitset(
 			GPOPT_DISABLE_XFORM_TF(CXform::ExfLeftJoin2RightJoin));
 		traceflag_bitset->ExchangeSet(
 			GPOPT_DISABLE_XFORM_TF(CXform::ExfRightOuterJoin2HashJoin));
+    }
+
+    // MDQAs rule
+	if (!optimizer_force_expanded_distinct_aggs)
+	{
+		// disable MDQAs to Join if the corresponding GUC is turned off
+		traceflag_bitset->ExchangeSet(GPOPT_DISABLE_XFORM_TF(
+			CXform::ExfGbAggWithMDQA2Join));
+	}
+
+	if (!optimizer_force_tupsplit_distinct_aggs)
+	{
+		// disable MDQAs to TupSplit if the corresponding GUC is turned off
+		traceflag_bitset->ExchangeSet(GPOPT_DISABLE_XFORM_TF(
+			CXform::ExfGbAggWithMDQA2TupSplit));
 	}
 
 	return traceflag_bitset;
