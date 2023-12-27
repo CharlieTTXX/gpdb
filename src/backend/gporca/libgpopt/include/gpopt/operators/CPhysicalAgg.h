@@ -94,7 +94,7 @@ protected:
 	// compute required columns of the n-th child
 	CColRefSet *PcrsRequiredAgg(CMemoryPool *mp, CExpressionHandle &exprhdl,
 								CColRefSet *pcrsRequired, ULONG child_index,
-								CColRefArray *pdrgpcrGrp);
+								CColRefArray *pdrgpcrGrp, CColRef *aggexprid);
 
 	// compute required distribution of the n-th child
 	CDistributionSpec *PdsRequiredAgg(CMemoryPool *mp,

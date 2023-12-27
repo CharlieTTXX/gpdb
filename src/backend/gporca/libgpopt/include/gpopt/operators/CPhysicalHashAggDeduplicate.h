@@ -82,7 +82,7 @@ public:
 				 ) override
 	{
 		return PcrsRequiredAgg(mp, exprhdl, pcrsRequired, child_index,
-							   m_pdrgpcrKeys);
+							   m_pdrgpcrKeys, m_aggexprid);
 	}
 
 	// compute required distribution of the n-th child

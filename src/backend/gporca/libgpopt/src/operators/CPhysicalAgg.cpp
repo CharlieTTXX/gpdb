@@ -159,7 +159,7 @@ CPhysicalAgg::PcrsRequired(CMemoryPool *mp, CExpressionHandle &exprhdl,
 						   ULONG			  // ulOptReq
 )
 {
-	return PcrsRequiredAgg(mp, exprhdl, pcrsRequired, child_index, m_pdrgpcr);
+	return PcrsRequiredAgg(mp, exprhdl, pcrsRequired, child_index, m_pdrgpcr, m_aggexprid);
 }
 
 
@@ -175,7 +175,7 @@ CPhysicalAgg::PcrsRequired(CMemoryPool *mp, CExpressionHandle &exprhdl,
 CColRefSet *
 CPhysicalAgg::PcrsRequiredAgg(CMemoryPool *mp, CExpressionHandle &exprhdl,
 							  CColRefSet *pcrsRequired, ULONG child_index,
-							  CColRefArray *pdrgpcrGrp)
+							  CColRefArray *pdrgpcrGrp, CColRef *aggexprid)
 {
 	GPOS_ASSERT(nullptr != pdrgpcrGrp);
 	GPOS_ASSERT(
@@ -187,6 +187,9 @@ CPhysicalAgg::PcrsRequiredAgg(CMemoryPool *mp, CExpressionHandle &exprhdl,
 	// include grouping columns
 	pcrs->Include(pdrgpcrGrp);
 	pcrs->Union(pcrsRequired);
+
+	if (aggexprid != nullptr)
+		pcrs->Include(aggexprid);
 
 	CColRefSet *pcrsOutput =
 		PcrsChildReqd(mp, exprhdl, pcrs, child_index, 1 /*ulScalarIndex*/);

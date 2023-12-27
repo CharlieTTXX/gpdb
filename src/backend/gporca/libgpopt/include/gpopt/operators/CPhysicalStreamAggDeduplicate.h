@@ -82,7 +82,7 @@ public:
 				 ) override
 	{
 		return PcrsRequiredAgg(mp, exprhdl, pcrsRequired, child_index,
-							   m_pdrgpcrKeys);
+							   m_pdrgpcrKeys, m_aggexprid);
 	}
 
 	// compute required sort columns of the n-th child
