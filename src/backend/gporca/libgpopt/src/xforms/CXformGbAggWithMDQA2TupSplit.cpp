@@ -218,6 +218,20 @@ CXformGbAggWithMDQA2TupSplit::PexprTupSplitMDQAs(CMemoryPool *mp, CExpression *p
 
 	ExtractDistinctCols(mp, col_factory, md_accessor, pexprPrL, pdrgpexprChildPrEl, phmexprcr, &pdrgpcrArgDQA);
 
+	if (0 < pdrgpexprChildPrEl->Size())
+	{
+		pexprRel->AddRef();
+
+		// computed columns referred to in the DQA
+		CExpression *pexprChildProject = CUtils::PexprLogicalProject(
+			mp, pexprRel,
+			GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp),
+									 pdrgpexprChildPrEl),
+			true /*fNewComputedCol*/
+		);
+		pexprRel = pexprChildProject;
+	}
+
 	// array of project elements for the local (first), intermediate
 	// (second) and global (third) aggregate operator
 	CExpressionArray *pdrgpexprPrElFirstStage =
