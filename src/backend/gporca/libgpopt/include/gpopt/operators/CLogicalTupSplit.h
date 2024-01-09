@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2012 EMC Corp.
+//	Copyright (C) 2024 VMware, Inc.
 //
 //	@filename:
 //		CLogicalTupSplit.h
@@ -32,8 +32,10 @@ class CTableDescriptor;
 class CLogicalTupSplit : public CLogical
 {
 private:
+	// aggexprid column
 	CColRef *m_aggexprid;
 
+	// dqa infos for each DQA
 	CColRefArray *m_dqaexprs;
 
 	// array of grouping columns

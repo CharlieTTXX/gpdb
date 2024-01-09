@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2012 EMC Corp.
+//	Copyright (C) 2024 VMware, Inc.
 //
 //	@filename:
 //		CPhysicalSplit.h
@@ -37,7 +37,7 @@ private:
 
 	CColRefArray *m_pdrgpcr;
 
-    CColRefSet *m_pcrsRequiredLocal;
+	CColRefSet *m_pcrsRequiredLocal;
 
 public:
 	CPhysicalTupSplit(const CPhysicalTupSplit &) = delete;

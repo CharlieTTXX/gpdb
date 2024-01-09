@@ -3105,8 +3105,8 @@ show_tuple_split_keys(TupleSplitState *tstate, List *ancestors,
 	foreach(lc, plan->dqa_expr_lst)
 	{
 		DQAExpr *dqa_expr = (DQAExpr *)lfirst(lc);
-		if (plan->orca)
-			dqa_expr->pure = true;
+		if (plan->optimizer)
+			dqa_expr->directref = true;
 
 		result = lappend(result,
 		                 deparse_expression((Node *) dqa_expr, context,

@@ -89,7 +89,7 @@ ExecInitTupleSplit(TupleSplit *node, EState *estate, int eflags)
 		DQAExpr *dqaExpr = (DQAExpr *)lfirst(lc);
 
 		int j = -1;
-		if (node->orca)
+		if (node->optimizer)
 		{
 			while ((j = bms_next_member(dqaExpr->agg_args_id_bms, j)) >= 0)
 			{

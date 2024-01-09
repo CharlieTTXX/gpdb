@@ -1278,7 +1278,7 @@ typedef struct TupleSplit
 
 	List       *dqa_expr_lst;
 
-	bool		orca;
+	bool		optimizer;
 } TupleSplit;
 
 /* ----------------

@@ -351,7 +351,7 @@ typedef struct
 	Bitmapset  *agg_args_id_bms; /* each DQA's arg indexes bitmapset */
 	Expr	   *agg_filter;		/* DQA's filter. since tuplesplit, filter have to push down */
 	Bitmapset  *agg_vars_ref;	/* vars of normal agg, which assigned to this DQAExpr */
-	bool		pure;
+	bool		directref;		/* get the TargetEntry directly or get it from sortref, planner and orca are different */
 } DQAExpr;
 
 /*

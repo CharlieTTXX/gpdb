@@ -9719,7 +9719,7 @@ get_dqa_expr(DQAExpr *dqa_expr,deparse_context *context)
 
 	resetStringInfo(buf);
 	appendStringInfoChar(buf, '(');
-	if (dqa_expr->pure)
+	if (dqa_expr->directref)
 	{
 		while ((id = bms_next_member(bm, id)) >= 0)
 		{

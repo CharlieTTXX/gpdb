@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2012 EMC Corp.
+//	Copyright (C) 2024 VMware, Inc.
 //
 //	@filename:
 //		CXformImplementTupSplit.cpp

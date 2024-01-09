@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2015 VMware, Inc. or its affiliates.
+//	Copyright (C) 2024 VMware, Inc.
 //
 //	@filename:
 //		CXformGbAggWithMDQA2TupSplit.h

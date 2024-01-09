@@ -5431,7 +5431,7 @@ CTranslatorExprToDXL::PdxlnSplit(CExpression *pexpr,
 //		CTranslatorExprToDXL::PdxlnTupSplit
 //
 //	@doc:
-//		Translate a split operator
+//		Translate a TupSplit operator
 //
 //---------------------------------------------------------------------------
 CDXLNode *

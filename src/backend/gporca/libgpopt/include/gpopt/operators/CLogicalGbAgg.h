@@ -291,8 +291,8 @@ private:
 	// which type of multi-stage agg it is
 	EAggStage m_aggStage;
 
+	// aggexprid of Agg in MDQAs tupesplit
 	CColRef *m_aggexprid;
-
 };	// class CLogicalGbAgg
 
 }  // namespace gpopt

@@ -531,14 +531,7 @@ CConfigParamMapping::PackConfigParamInBitset(
 			GPOPT_DISABLE_XFORM_TF(CXform::ExfRightOuterJoin2HashJoin));
     }
 
-    // MDQAs rule
-	if (!optimizer_force_expanded_distinct_aggs)
-	{
-		// disable MDQAs to Join if the corresponding GUC is turned off
-		traceflag_bitset->ExchangeSet(GPOPT_DISABLE_XFORM_TF(
-			CXform::ExfGbAggWithMDQA2Join));
-	}
-
+    // MDQAs TupSplit rule
 	if (!optimizer_force_tupsplit_distinct_aggs)
 	{
 		// disable MDQAs to TupSplit if the corresponding GUC is turned off

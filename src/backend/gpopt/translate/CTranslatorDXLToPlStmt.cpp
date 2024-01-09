@@ -81,7 +81,6 @@ extern "C" {
 #include "naucrates/dxl/operators/CDXLPhysicalSort.h"
 #include "naucrates/dxl/operators/CDXLPhysicalSplit.h"
 #include "naucrates/dxl/operators/CDXLPhysicalTupSplit.h"
-#include "naucrates/dxl/operators/CDXLPhysicalSubqueryScan.h"
 #include "naucrates/dxl/operators/CDXLPhysicalTVF.h"
 #include "naucrates/dxl/operators/CDXLPhysicalTableScan.h"
 #include "naucrates/dxl/operators/CDXLPhysicalValuesScan.h"
@@ -5045,7 +5044,7 @@ CTranslatorDXLToPlStmt::TranslateDXLTupSplit(
 	CDXLPhysicalTupSplit *phy_split_dxlop =
 		CDXLPhysicalTupSplit::Cast(split_dxlnode->GetOperator());
 
-	// create SplitUpdate node
+	// create TupSplit node
 	TupleSplit *split = MakeNode(TupleSplit);
 	Plan *plan = &(split->plan);
 
@@ -5068,7 +5067,7 @@ CTranslatorDXLToPlStmt::TranslateDXLTupSplit(
 							 nullptr,  // translate context for the base table
 							 child_contexts, output_context);
 
-	// translate delete and insert columns
+	// translate dqaexpr and group columns
 	ULongPtrArray *dqexprs =
 		phy_split_dxlop->GetDQAExprArray();
 	ULongPtrArray *groups =
@@ -5115,7 +5114,7 @@ CTranslatorDXLToPlStmt::TranslateDXLTupSplit(
 		aggexprid++;
 	}
 
-	split->orca = true;
+	split->optimizer = true;
 
 	plan->lefttree = child_plan;
 	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
