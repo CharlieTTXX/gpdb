@@ -963,9 +963,9 @@ signalSegmentQEs(CdbDispatchCmdAsync *pParms,
 		backendsArray[i] = lfirst_int(lc);
 
 	if (isCancel)
-		ret = PQMppcancel(cancel, errbuf, 256, numBackends, backendsArray);
+		ret = PQMppRequest(cancel, errbuf, 256, numBackends, backendsArray, 1);
 	else
-		ret = PQMpprequestFinish(cancel, errbuf, 256, numBackends, backendsArray);
+		ret = PQMppRequest(cancel, errbuf, 256, numBackends, backendsArray, 0);
 
 	PQfreeCancel(cancel);
 	return ret;
@@ -1011,7 +1011,7 @@ signalQEs(CdbDispatchCmdAsync *pParms)
 		if (sent)
 			dispatchResult->sentSignal = waitMode;
 		else
-			elog(LOG, "Unable to Mpp cancel: %s",
+			elog(LOG, "Unable to Mpp Request: %s",
 				 strlen(errbuf) == 0 ? "cannot allocate PGCancel" : errbuf);
 	}
 }
