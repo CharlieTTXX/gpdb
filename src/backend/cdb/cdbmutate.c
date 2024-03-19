@@ -3019,6 +3019,85 @@ fixup_subplans(Plan *top_plan, PlannerInfo *root, SubPlanWalkerContext *context)
 	fixup_subplan_walker((Node *) top_plan, context);
 }
 
+/*
+ * Append duplicate subplans and update plan id to refer them if same
+ * subplan is referred at multiple places
+ */
+static bool
+param_subplan_walker(Node *node, SubPlanParamWalkerContext *context)
+{
+	if (node == NULL)
+		return false;
+
+	if (IsA(node, Param))
+	{
+		Param *param = (Param *)node;
+
+		if (!bms_is_member(param->paramid, context->bms_initplans) &&
+			context->under_motion)
+			elog(ERROR, "Passing parameters across motion is not supported.");
+	}
+
+	if (IsA(node, Motion))
+	{
+		bool result;
+		bool upper_under_motion = context->under_motion;
+
+		context->under_motion = true;
+		result = plan_tree_walker(node, param_subplan_walker, context);
+		context->under_motion = upper_under_motion;
+
+		return result;
+	}
+
+	return plan_tree_walker(node, param_subplan_walker, context);
+}
+
+/*
+ * Entry point for fixing subplan references. A SubPlan node
+ * cannot be parallelized twice, so if multiple subplan node
+ * refer to the same plan_id, create a duplicate subplan and update
+ * the plan_id of the subplan to refer to the new copy of subplan node
+ * created in PlannedStmt subplans
+ */
+void
+param_subplan(PlannedStmt *stmt, SubPlanParamWalkerContext *context)
+{
+	ListCell *lc = NULL;
+	List 	 *subplans = stmt->subplans;
+
+	/*
+	 * If there are no subplans, no fixup will be required
+	 */
+	if (subplans == NULL)
+		return;
+
+	context->bms_initplans = NULL;
+
+	foreach(lc, subplans)
+	{
+		SubPlan *subplan = (SubPlan *)lfirst(lc);
+		Plan 	*plan = (Plan *) list_nth(subplans, subplan->plan_id - 1);
+
+		context->under_motion = false;
+
+		param_subplan_walker((Node *)plan, context);
+
+		/* we should record params of initplan output from bottom up */
+		if (subplan->is_initplan)
+		{
+			ListCell *li = NULL;
+			Bitmapset *setparams = NULL;
+
+			foreach(li, subplan->setParam)
+				setparams = bms_add_member(setparams, (int)lfirst_int(li));
+			
+			context->bms_initplans = bms_union(context->bms_initplans , setparams);
+		}
+	}
+
+	return;
+}
 
 /*
  * Remove unused subplans from PlannerGlobal subplans

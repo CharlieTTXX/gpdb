@@ -524,6 +524,8 @@ check_multi_subquery_correlated(PlannerInfo *root, Var *var)
 {
 	int levelsup;
 
+	return;
+
 	if (Gp_role != GP_ROLE_DISPATCH)
 		return;
 	if (var->varlevelsup <= 1)

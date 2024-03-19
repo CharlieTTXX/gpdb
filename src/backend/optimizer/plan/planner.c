@@ -509,6 +509,13 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	}
 	END_MEMORY_ACCOUNT();
 
+	/*
+	 * Specific for GPDB
+	 * we need to check whether there is parameters over motion for subplan
+	 */
+	SubPlanParamWalkerContext param_subplan_context;
+	param_subplan(result, &param_subplan_context);
+
 	return result;
 }
 
