@@ -4541,6 +4541,101 @@ cancel_errReturn:
 	return false;
 }
 
+static int
+send_cancel(SockAddr *raddr, int be_pid, int be_key,
+				char *errbuf, int errbufsize, int requestCode,
+				int sessionid)
+{
+	int			save_errno = SOCK_ERRNO;
+	pgsocket	tmpsock = PGINVALID_SOCKET;
+	int			maxlen;
+	struct
+	{
+		uint32		packetlen;
+		CancelRequestPacket cp;
+	}			crp;
+
+	/*
+	 * We need to open a temporary connection to the postmaster. Do this with
+	 * only kernel calls.
+	 */
+	if ((tmpsock = socket(raddr->addr.ss_family, SOCK_STREAM, 0)) == PGINVALID_SOCKET)
+	{
+		strlcpy(errbuf, "PQcancel() -- socket() failed: ", errbufsize);
+		goto cancel_errReturn;
+	}
+
+retry3:
+	if (connect(tmpsock, (struct sockaddr *) &raddr->addr,
+				raddr->salen) < 0)
+	{
+		if (SOCK_ERRNO == EINTR)
+			/* Interrupted system call - we'll just try again */
+			goto retry3;
+		strlcpy(errbuf, "PQcancel() -- connect() failed: ", errbufsize);
+		goto cancel_errReturn;
+	}
+
+	/*
+	 * We needn't set nonblocking I/O or NODELAY options here.
+	 */
+
+	/* Create and send the cancel request packet. */
+
+	crp.packetlen = pg_hton32((uint32) sizeof(crp));
+	crp.cp.cancelRequestCode = (MsgType) pg_hton32(requestCode);
+	crp.cp.backendPID = pg_hton32(be_pid);
+	crp.cp.cancelAuthCode = pg_hton32(be_key);
+	crp.cp.sessionid = pg_hton32(sessionid);
+
+retry4:
+	if (send(tmpsock, (char *) &crp, sizeof(crp), 0) != (int) sizeof(crp))
+	{
+		if (SOCK_ERRNO == EINTR)
+			/* Interrupted system call - we'll just try again */
+			goto retry4;
+		strlcpy(errbuf, "PQcancel() -- send() failed: ", errbufsize);
+		goto cancel_errReturn;
+	}
+
+	return tmpsock;
+
+cancel_errReturn:
+
+	/*
+	 * Make sure we don't overflow the error buffer. Leave space for the \n at
+	 * the end, and for the terminating zero.
+	 */
+	maxlen = errbufsize - strlen(errbuf) - 2;
+	if (maxlen >= 0)
+	{
+		/*
+		 * We can't invoke strerror here, since it's not signal-safe.  Settle
+		 * for printing the decimal value of errno.  Even that has to be done
+		 * the hard way.
+		 */
+		int			val = SOCK_ERRNO;
+		char		buf[32];
+		char	   *bufp;
+
+		bufp = buf + sizeof(buf) - 1;
+		*bufp = '\0';
+		do
+		{
+			*(--bufp) = (val % 10) + '0';
+			val /= 10;
+		} while (val > 0);
+		bufp -= 6;
+		memcpy(bufp, "error ", 6);
+		strncat(errbuf, bufp, maxlen);
+		strcat(errbuf, "\n");
+	}
+	if (tmpsock != PGINVALID_SOCKET)
+		closesocket(tmpsock);
+	SOCK_ERRNO_SET(save_errno);
+	return PGINVALID_SOCKET;
+}
+
 /*
  * PQcancel: request query cancel
  *
@@ -4597,10 +4692,10 @@ PQMppcancel(PGcancel *cancel, char *errbuf, int errbufsize, int sessionid)
 	if (!cancel)
 	{
 		strlcpy(errbuf, "PQMppcancel() -- no cancel object supplied", errbufsize);
-		return false;
+		return PGINVALID_SOCKET;
 	}
 
-	return internal_cancel(&cancel->raddr, cancel->be_pid, cancel->be_key,
+	return send_cancel(&cancel->raddr, cancel->be_pid, cancel->be_key,
 						   errbuf, errbufsize, MPP_CANCEL_REQUEST_CODE, sessionid);
 }
 
@@ -4616,10 +4711,10 @@ PQMppFinish(PGcancel *cancel, char *errbuf, int errbufsize, int sessionid)
 	{
 		strlcpy(errbuf, "PQMppFinish() -- no cancel object supplied",
 				errbufsize);
-		return false;
+		return PGINVALID_SOCKET;
 	}
 
-	return internal_cancel(&cancel->raddr, cancel->be_pid, cancel->be_key,
+	return send_cancel(&cancel->raddr, cancel->be_pid, cancel->be_key,
 						   errbuf, errbufsize, MPP_FINISH_REQUEST_CODE, sessionid);
 }
 

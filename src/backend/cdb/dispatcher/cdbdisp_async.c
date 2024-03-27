@@ -35,7 +35,9 @@
 #include "cdb/cdbgang.h"
 #include "cdb/cdbvars.h"
 #include "cdb/cdbpq.h"
+#include "cdb/cdbselect.h"
 #include "miscadmin.h"
+#include "unistd.h"
 #include "commands/sequence.h"
 #include "access/xact.h"
 #include "utils/timestamp.h"
@@ -913,13 +915,23 @@ static void
 signalQEs(CdbDispatchCmdAsync *pParms)
 {
 	int			i;
+	int			n;
+	int			conn_count = 0;
+	mpp_fd_set	waitset,
+				curset;
+	int			maxfd = -1;
 	Bitmapset	*segbp = NULL;
 	DispatchWaitMode waitMode = pParms->waitMode;
+	struct 	timeval timeout;
+	int timeout_count = 0;
+	List	*conn_fds = NULL;
+
+	MPP_FD_ZERO(&waitset);
 
 	for (i = 0; i < pParms->dispatchCount; i++)
 	{
 		char		errbuf[256];
-		bool		sent = false;
+		int		fd_socket = false;
 		CdbDispatchResult *dispatchResult = pParms->dispatchResultPtrArray[i];
 
 		Assert(dispatchResult != NULL);
@@ -940,17 +952,92 @@ signalQEs(CdbDispatchCmdAsync *pParms)
 
 		memset(errbuf, 0, sizeof(errbuf));
 
-		sent = cdbconn_signalQE(segdbDesc, errbuf, waitMode == DISPATCH_WAIT_CANCEL ?
+		fd_socket = cdbconn_sendQE(segdbDesc, errbuf, waitMode == DISPATCH_WAIT_CANCEL ?
 								MPP_CANCEL_REQUEST_CODE : MPP_FINISH_REQUEST_CODE);
-		if (sent)
+		if (fd_socket != PGINVALID_SOCKET)
 		{
 			dispatchResult->sentSignal = waitMode;
 			segbp = bms_add_member(segbp, segdbDesc->segindex);
+
+			MPP_FD_SET(fd_socket, &waitset);
+			if (fd_socket > maxfd)
+				maxfd = fd_socket;
+			conn_count++;
+
+			conn_fds = lappend_int(conn_fds, fd_socket);
 		}
 		else
 			elog(LOG, "Unable to cancel: %s",
 				 strlen(errbuf) == 0 ? "cannot allocate PGCancel" : errbuf);
 	}
+
+	while(1)
+	{
+		timeout.tv_sec = 10;
+		timeout.tv_usec = 0;
+		int			saved_err;
+		ListCell *lc = NULL;
+
+		if (conn_count == 0)
+			return;
+
+		if (timeout_count >= 20)
+			elog(ERROR, "we have tried 20 times but failed");
+
+		memcpy(&curset, &waitset, sizeof(mpp_fd_set));
+		n = select(maxfd + 1, (fd_set *) &curset, NULL, NULL, &timeout);
+
+		if (n < 0)
+		{
+			if (errno == EINTR)
+				continue;
+
+			saved_err = errno;
+
+			/* Something unexpected, but probably not horrible warn and return */
+			elog(LOG, "MppCancelRequest: signalQEs select errno=%d", saved_err);
+			break;
+		}
+		else if (n == 0)
+			timeout_count++;
+
+		foreach(lc, conn_fds)
+		{
+			int fd = lfirst_int(lc);
+
+			if (fd >= 0 && MPP_FD_ISSET(fd, &curset))
+			{
+				int			count;
+				char		buf;
+
+				/* ready to read. */
+				count = recv(fd, &buf, sizeof(buf), 0);
+
+				if (count == 0 || count == 1) /* done ! */
+				{
+					MPP_FD_CLR(fd, &waitset);
+					/* we may have finished */
+					conn_count--;
+					close(fd);
+					continue;
+				}
+				else if (count < 0 && (errno == EAGAIN || errno == EINTR))
+					continue;
+				
+				/*
+				 * Something unexpected, but probably not horrible warn and
+				 * return
+				 */
+				MPP_FD_CLR(fd, &waitset);
+				/* we may have finished */
+				conn_count--;
+				elog(LOG, "MppCancelRequest: signalQEs select conn_count %d", conn_count);
+				continue;
+			}
+		}
+	}
+
+	return;
 }
 
 /*

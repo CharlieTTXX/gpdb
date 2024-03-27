@@ -492,6 +492,28 @@ cdbconn_signalQE(SegmentDatabaseDescriptor *segdbDesc,
 	return ret;
 }
 
+int
+cdbconn_sendQE(SegmentDatabaseDescriptor *segdbDesc,
+			   char *errbuf,
+			   int requestCode)
+{
+	PGcancel   *cn = PQgetCancel(segdbDesc->conn);
+	int result;
+
+	if (cn == NULL)
+		return false;
+
+	if (requestCode == MPP_CANCEL_REQUEST_CODE)
+		result = PQMppcancel(cn, errbuf, 256, gp_session_id);
+	else if(requestCode == MPP_FINISH_REQUEST_CODE)
+		result = PQMppFinish(cn, errbuf, 256, gp_session_id);
+	else
+		elog(ERROR, "Wrong requestCode");
+
+	PQfreeCancel(cn);
+
+	return result;
+}
 
 /* GPDB function to retrieve QE-backend details (motion listener) */
 static uint32
