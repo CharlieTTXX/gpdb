@@ -4390,10 +4390,9 @@ PQfreeCancel(PGcancel *cancel)
  * internal_cancel() is an internal helper function to make code-sharing
  * between the two versions of the cancel function possible.
  */
-static int
+static bool
 internal_cancel(SockAddr *raddr, int be_pid, int be_key,
-				char *errbuf, int errbufsize, int requestCode,
-				int sessionid)
+				char *errbuf, int errbufsize, int requestCode)
 {
 	int			save_errno = SOCK_ERRNO;
 	pgsocket	tmpsock = PGINVALID_SOCKET;
@@ -4440,7 +4439,6 @@ retry3:
 	crp.cp.cancelRequestCode = (MsgType) pg_hton32(requestCode);
 	crp.cp.backendPID = pg_hton32(be_pid);
 	crp.cp.cancelAuthCode = pg_hton32(be_key);
-	crp.cp.sessionid = pg_hton32(sessionid);
 
 retry4:
 	if (send(tmpsock, (char *) &crp, sizeof(crp), 0) != (int) sizeof(crp))
@@ -4542,7 +4540,7 @@ cancel_errReturn:
 }
 
 static int
-send_cancel(SockAddr *raddr, int be_pid, int be_key,
+nonblock_cancel(SockAddr *raddr, int be_pid, int be_key,
 				char *errbuf, int errbufsize, int requestCode,
 				int sessionid)
 {
@@ -4552,7 +4550,7 @@ send_cancel(SockAddr *raddr, int be_pid, int be_key,
 	struct
 	{
 		uint32		packetlen;
-		CancelRequestPacket cp;
+		CancelMppRequestPacket cp;
 	}			crp;
 
 	/*
@@ -4561,7 +4559,7 @@ send_cancel(SockAddr *raddr, int be_pid, int be_key,
 	 */
 	if ((tmpsock = socket(raddr->addr.ss_family, SOCK_STREAM, 0)) == PGINVALID_SOCKET)
 	{
-		strlcpy(errbuf, "PQcancel() -- socket() failed: ", errbufsize);
+		strlcpy(errbuf, "nonblock_cancel() -- socket() failed: ", errbufsize);
 		goto cancel_errReturn;
 	}
 
@@ -4570,9 +4568,9 @@ retry3:
 				raddr->salen) < 0)
 	{
 		if (SOCK_ERRNO == EINTR)
-			/* Interrupted system call - we'll just try again */
+			/* we'll just try again */
 			goto retry3;
-		strlcpy(errbuf, "PQcancel() -- connect() failed: ", errbufsize);
+		strlcpy(errbuf, "nonblock_cancel() -- connect() failed: ", errbufsize);
 		goto cancel_errReturn;
 	}
 
@@ -4592,11 +4590,15 @@ retry4:
 	if (send(tmpsock, (char *) &crp, sizeof(crp), 0) != (int) sizeof(crp))
 	{
 		if (SOCK_ERRNO == EINTR)
-			/* Interrupted system call - we'll just try again */
+			/* we'll just try again */
 			goto retry4;
-		strlcpy(errbuf, "PQcancel() -- send() failed: ", errbufsize);
+		strlcpy(errbuf, "nonblock_cancel() -- send() failed: ", errbufsize);
 		goto cancel_errReturn;
 	}
+
+	/* set sock as non-blocking mode */
+	if (!pg_set_noblock(tmpsock))
+		goto cancel_errReturn;
 
 	return tmpsock;
 
@@ -4655,7 +4657,7 @@ PQcancel(PGcancel *cancel, char *errbuf, int errbufsize)
 	}
 
 	return internal_cancel(&cancel->raddr, cancel->be_pid, cancel->be_key,
-						   errbuf, errbufsize, CANCEL_REQUEST_CODE, 0);
+						   errbuf, errbufsize, CANCEL_REQUEST_CODE);
 }
 
 /*
@@ -4674,7 +4676,7 @@ PQrequestFinish(PGcancel *cancel, char *errbuf, int errbufsize)
 	}
 
 	return internal_cancel(&cancel->raddr, cancel->be_pid, cancel->be_key,
-						   errbuf, errbufsize, FINISH_REQUEST_CODE, 0);
+						   errbuf, errbufsize, FINISH_REQUEST_CODE);
 }
 
 /*
@@ -4695,7 +4697,7 @@ PQMppcancel(PGcancel *cancel, char *errbuf, int errbufsize, int sessionid)
 		return PGINVALID_SOCKET;
 	}
 
-	return send_cancel(&cancel->raddr, cancel->be_pid, cancel->be_key,
+	return nonblock_cancel(&cancel->raddr, cancel->be_pid, cancel->be_key,
 						   errbuf, errbufsize, MPP_CANCEL_REQUEST_CODE, sessionid);
 }
 
@@ -4714,7 +4716,7 @@ PQMppFinish(PGcancel *cancel, char *errbuf, int errbufsize, int sessionid)
 		return PGINVALID_SOCKET;
 	}
 
-	return send_cancel(&cancel->raddr, cancel->be_pid, cancel->be_key,
+	return nonblock_cancel(&cancel->raddr, cancel->be_pid, cancel->be_key,
 						   errbuf, errbufsize, MPP_FINISH_REQUEST_CODE, sessionid);
 }
 
@@ -4751,7 +4753,7 @@ PQrequestCancel(PGconn *conn)
 
 	r = internal_cancel(&conn->raddr, conn->be_pid, conn->be_key,
 						conn->errorMessage.data, conn->errorMessage.maxlen,
-						false, 0);
+						false);
 
 	if (!r)
 		conn->errorMessage.len = strlen(conn->errorMessage.data);

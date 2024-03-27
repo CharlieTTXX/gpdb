@@ -952,7 +952,7 @@ signalQEs(CdbDispatchCmdAsync *pParms)
 
 		memset(errbuf, 0, sizeof(errbuf));
 
-		fd_socket = cdbconn_sendQE(segdbDesc, errbuf, waitMode == DISPATCH_WAIT_CANCEL ?
+		fd_socket = cdbconn_signalQE_nonblock(segdbDesc, errbuf, waitMode == DISPATCH_WAIT_CANCEL ?
 								MPP_CANCEL_REQUEST_CODE : MPP_FINISH_REQUEST_CODE);
 		if (fd_socket != PGINVALID_SOCKET)
 		{
@@ -973,33 +973,40 @@ signalQEs(CdbDispatchCmdAsync *pParms)
 
 	while(1)
 	{
-		timeout.tv_sec = 10;
+		timeout.tv_sec = 12;
 		timeout.tv_usec = 0;
 		int			saved_err;
 		ListCell *lc = NULL;
 
 		if (conn_count == 0)
+		{
+			elog(LOG, "signalQEs success, all requests have been sent to QE.");
 			return;
+		}
 
-		if (timeout_count >= 20)
-			elog(ERROR, "we have tried 20 times but failed");
+		/* we should retry 10 times. */
+		if (timeout_count >= 10)
+			elog(ERROR, "after waiting for responses for over two minutes, there are still %d connections that have not responded.", conn_count);
 
 		memcpy(&curset, &waitset, sizeof(mpp_fd_set));
 		n = select(maxfd + 1, (fd_set *) &curset, NULL, NULL, &timeout);
 
 		if (n < 0)
 		{
-			if (errno == EINTR)
+			if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
 				continue;
 
 			saved_err = errno;
 
-			/* Something unexpected, but probably not horrible warn and return */
-			elog(LOG, "MppCancelRequest: signalQEs select errno=%d", saved_err);
-			break;
+			/* Something unexpected, but probably not horrible warn and retry */
+			elog(LOG, "signalQEs select errno=%d", saved_err);
 		}
 		else if (n == 0)
+		{
+			/* timeout */
 			timeout_count++;
+			continue;
+		}
 
 		foreach(lc, conn_fds)
 		{
@@ -1021,17 +1028,16 @@ signalQEs(CdbDispatchCmdAsync *pParms)
 					close(fd);
 					continue;
 				}
-				else if (count < 0 && (errno == EAGAIN || errno == EINTR))
+				else if (count < 0 && (errno == EAGAIN || errno == EINTR || errno == EWOULDBLOCK))
 					continue;
-				
+
 				/*
-				 * Something unexpected, but probably not horrible warn and
-				 * return
+				 * Something unexpected, but probably not horrible warn and ignore
 				 */
 				MPP_FD_CLR(fd, &waitset);
 				/* we may have finished */
 				conn_count--;
-				elog(LOG, "MppCancelRequest: signalQEs select conn_count %d", conn_count);
+				close(fd);
 				continue;
 			}
 		}

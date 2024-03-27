@@ -2890,7 +2890,7 @@ SendMppProcSignal(int sessionid, MsgType code)
 static void
 processMppCancelRequest(Port *port, void *pkt, MsgType code)
 {
-	CancelRequestPacket *canc = (CancelRequestPacket *) pkt;
+	CancelMppRequestPacket *canc = (CancelMppRequestPacket *) pkt;
 	int			backendPID;
 	int			sessionid;
 	int32		cancelAuthCode;
