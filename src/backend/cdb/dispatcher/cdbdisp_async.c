@@ -952,8 +952,18 @@ signalQEs(CdbDispatchCmdAsync *pParms)
 
 		memset(errbuf, 0, sizeof(errbuf));
 
+#ifdef FAULT_INJECTOR
+		if (SIMPLE_FAULT_INJECTOR("async_cancel_qe") == FaultInjectorTypeSkip)
+		{
+			segbp = bms_add_member(segbp, segdbDesc->segindex);
+			conn_count++;
+			continue;
+		}
+#endif
+
 		fd_socket = cdbconn_signalQE_nonblock(segdbDesc, errbuf, waitMode == DISPATCH_WAIT_CANCEL ?
 								MPP_CANCEL_REQUEST_CODE : MPP_FINISH_REQUEST_CODE);
+
 		if (fd_socket != PGINVALID_SOCKET)
 		{
 			dispatchResult->sentSignal = waitMode;
@@ -986,7 +996,7 @@ signalQEs(CdbDispatchCmdAsync *pParms)
 
 		/* we should retry 10 times. */
 		if (timeout_count >= 10)
-			elog(ERROR, "after waiting for responses for over two minutes, there are still %d connections that have not responded.", conn_count);
+			elog(ERROR, "after waiting for responses for over two minutes, there are still %d segment that have not responded.", conn_count);
 
 		memcpy(&curset, &waitset, sizeof(mpp_fd_set));
 		n = select(maxfd + 1, (fd_set *) &curset, NULL, NULL, &timeout);

@@ -487,7 +487,7 @@ cdbconn_signalQE_nonblock(SegmentDatabaseDescriptor *segdbDesc,
 	int result;
 
 	if (cn == NULL)
-		return false;
+		return PGINVALID_SOCKET;
 
 	if (requestCode == MPP_CANCEL_REQUEST_CODE)
 		result = PQMppcancel(cn, errbuf, 256, gp_session_id);
