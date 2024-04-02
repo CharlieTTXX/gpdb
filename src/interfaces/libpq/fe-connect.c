@@ -4539,6 +4539,9 @@ cancel_errReturn:
 	return false;
 }
 
+/*
+ * Return valid socket with non-blocking mode
+ */
 static int
 nonblock_cancel(SockAddr *raddr, int be_pid, int be_key,
 				char *errbuf, int errbufsize, int requestCode,
@@ -4574,12 +4577,7 @@ retry3:
 		goto cancel_errReturn;
 	}
 
-	/*
-	 * We needn't set nonblocking I/O or NODELAY options here.
-	 */
-
 	/* Create and send the cancel request packet. */
-
 	crp.packetlen = pg_hton32((uint32) sizeof(crp));
 	crp.cp.cancelRequestCode = (MsgType) pg_hton32(requestCode);
 	crp.cp.backendPID = pg_hton32(be_pid);
@@ -4596,14 +4594,13 @@ retry4:
 		goto cancel_errReturn;
 	}
 
-	/* set sock as non-blocking mode */
+	/* set socket as non-blocking mode */
 	if (!pg_set_noblock(tmpsock))
 		goto cancel_errReturn;
 
 	return tmpsock;
 
 cancel_errReturn:
-
 	/*
 	 * Make sure we don't overflow the error buffer. Leave space for the \n at
 	 * the end, and for the terminating zero.
@@ -4682,8 +4679,6 @@ PQrequestFinish(PGcancel *cancel, char *errbuf, int errbufsize)
 /*
  * PQMppcancel: request mpp query cancel
  *
- * Returns true if able to send the mpp cancel request, false if not.
- *
  * On failure, an error message is stored in *errbuf, which must be of size
  * errbufsize (recommended size is 256 bytes).  *errbuf is not changed on
  * success return.
@@ -4692,10 +4687,7 @@ int
 PQMppcancel(PGcancel *cancel, char *errbuf, int errbufsize, int sessionid)
 {
 	if (!cancel)
-	{
-		strlcpy(errbuf, "PQMppcancel() -- no cancel object supplied", errbufsize);
-		return PGINVALID_SOCKET;
-	}
+		Assert(false);
 
 	return nonblock_cancel(&cancel->raddr, cancel->be_pid, cancel->be_key,
 						   errbuf, errbufsize, MPP_CANCEL_REQUEST_CODE, sessionid);
@@ -4710,11 +4702,7 @@ int
 PQMppFinish(PGcancel *cancel, char *errbuf, int errbufsize, int sessionid)
 {
 	if (!cancel)
-	{
-		strlcpy(errbuf, "PQMppFinish() -- no cancel object supplied",
-				errbufsize);
-		return PGINVALID_SOCKET;
-	}
+		Assert(false);
 
 	return nonblock_cancel(&cancel->raddr, cancel->be_pid, cancel->be_key,
 						   errbuf, errbufsize, MPP_FINISH_REQUEST_CODE, sessionid);

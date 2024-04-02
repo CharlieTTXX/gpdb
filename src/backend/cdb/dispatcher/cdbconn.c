@@ -30,6 +30,7 @@
 #include "cdb/cdbvars.h"
 #include "cdb/cdbgang.h"
 
+#define CANCEL_BUFSIZE	256
 
 static uint32 cdbconn_get_motion_listener_port(PGconn *conn);
 static void cdbconn_disconnect(SegmentDatabaseDescriptor *segdbDesc);
@@ -460,7 +461,7 @@ cdbconn_setQEIdentifier(SegmentDatabaseDescriptor *segdbDesc,
 bool
 cdbconn_signalQE(SegmentDatabaseDescriptor *segdbDesc,
 				 char *errbuf,
-				 int isCancel)
+				 bool isCancel)
 {
 	bool		ret;
 
@@ -490,11 +491,11 @@ cdbconn_signalQE_nonblock(SegmentDatabaseDescriptor *segdbDesc,
 		return PGINVALID_SOCKET;
 
 	if (requestCode == MPP_CANCEL_REQUEST_CODE)
-		result = PQMppcancel(cn, errbuf, 256, gp_session_id);
+		result = PQMppcancel(cn, errbuf, CANCEL_BUFSIZE, gp_session_id);
 	else if(requestCode == MPP_FINISH_REQUEST_CODE)
-		result = PQMppFinish(cn, errbuf, 256, gp_session_id);
+		result = PQMppFinish(cn, errbuf, CANCEL_BUFSIZE, gp_session_id);
 	else
-		elog(ERROR, "Unrecognized RequestCode");
+		Assert(false);
 
 	PQfreeCancel(cn);
 

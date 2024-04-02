@@ -102,7 +102,13 @@ void cdbconn_setQEIdentifier(SegmentDatabaseDescriptor *segdbDesc, int sliceInde
  * Returns true if we successfully sent a signal
  * (not necessarily received by the target process).
  */
-bool cdbconn_signalQE(SegmentDatabaseDescriptor *segdbDesc, char *errbuf, int requestCode);
+bool cdbconn_signalQE(SegmentDatabaseDescriptor *segdbDesc, char *errbuf, bool isCancel);
+
+/*
+ * Send cancel/finish signal to still-running QE through libpq with non-block mode.
+ *
+ * Return valid socket fd if success, otherwise return PGINVALID_SOCKET if failed.
+ */
 int cdbconn_signalQE_nonblock(SegmentDatabaseDescriptor *segdbDesc, char *errbuf, int requestCode);
 
 extern void forwardQENotices(void);

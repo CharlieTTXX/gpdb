@@ -2870,12 +2870,16 @@ SendMppProcSignal(int sessionid, MsgType code)
 	List 		*QEPids = GetSessionQEPids(sessionid);
 
 	ereport(LOG,
-			(errmsg("start sending signals to all QEs in segment, QEs len is %d, sessionid is %d",
-			list_length(QEPids), sessionid)));
+			(errmsg("start sending signals to all QEs in segment, QEs len %d, session %d, MsgType %u", 
+			list_length(QEPids),
+			sessionid,
+			code)));
 
 	foreach(lc, QEPids)
 	{
 		int pid = lfirst_int(lc);
+
+		elog(LOG, "SendMppProcSignal is canceling pid QEPid %d", pid);
 
 		if(code == FINISH_REQUEST_CODE)
 			SendProcSignal(pid, PROCSIG_QUERY_FINISH,
@@ -2884,6 +2888,7 @@ SendMppProcSignal(int sessionid, MsgType code)
 			signal_child(pid, SIGINT);
 	}
 
+	list_free(QEPids);
 	return;
 }
 

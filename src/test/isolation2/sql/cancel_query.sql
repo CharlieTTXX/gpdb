@@ -51,3 +51,22 @@ INSERT INTO a_suspend_blocking select i,i,i from generate_series(1, 100) i;
 
 SELECT gp_inject_fault_infinite('exec_mpp_query_start', 'reset', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content >= 0;
 DROP TABLE a_suspend_blocking;
+
+CREATE TABLE nbc(a int, b int, c int);
+INSERT INTO nbc SELECT i,i,i FROM generate_series(1, 100) i;
+analyze nbc;
+
+0: SELECT gp_inject_fault('async_cancel_qe', 'skip', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content < 0;
+0: SELECT gp_inject_fault_infinite('before_exec_scan', 'suspend', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content >= 0;
+
+1&: SELECT * FROM nbc a1, nbc a2, nbc a3;
+2: SELECT pg_cancel_backend(pid) FROM pg_stat_activity WHERE query LIKE 'SELECT * FROM nbc a1, nbc a2, nbc a3%';
+
+1<:
+
+SELECT gp_inject_fault('async_cancel_qe', 'reset', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content < 0;
+SELECT gp_inject_fault_infinite('before_exec_scan', 'reset', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content >= 0;
+
+SELECT count(*) FROM gp_dist_random('pg_stat_activity') WHERE sess_id = (SELECT sess_id FROM pg_stat_activity WHERE query LIKE 'SELECT * FROM nbc a1, nbc a2, nbc a3%') AND state = 'active';
+
+DROP TABLE nbc;

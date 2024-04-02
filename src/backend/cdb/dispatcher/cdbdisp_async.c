@@ -931,7 +931,7 @@ signalQEs(CdbDispatchCmdAsync *pParms)
 	for (i = 0; i < pParms->dispatchCount; i++)
 	{
 		char		errbuf[256];
-		int		fd_socket = false;
+		int			fd_socket = 0;
 		CdbDispatchResult *dispatchResult = pParms->dispatchResultPtrArray[i];
 
 		Assert(dispatchResult != NULL);
@@ -981,9 +981,15 @@ signalQEs(CdbDispatchCmdAsync *pParms)
 				 strlen(errbuf) == 0 ? "cannot allocate PGCancel" : errbuf);
 	}
 
+	/*
+	 * select() sockets return by cdbconn_signalQE_nonblock.
+	 *
+	 * Note: we will set 6s timeout for select and repeat 10
+	 * times, so if we wait over one minute then raise error out.
+	 */
 	while(1)
 	{
-		timeout.tv_sec = 12;
+		timeout.tv_sec = 6;
 		timeout.tv_usec = 0;
 		int			saved_err;
 		ListCell *lc = NULL;
@@ -996,7 +1002,8 @@ signalQEs(CdbDispatchCmdAsync *pParms)
 
 		/* we should retry 10 times. */
 		if (timeout_count >= 10)
-			elog(ERROR, "after waiting for responses for over two minutes, there are still %d segment that have not responded.", conn_count);
+			elog(ERROR, "after waiting for responses for over one minutes, there are still %d"
+						" segment that have not responded.", conn_count);
 
 		memcpy(&curset, &waitset, sizeof(mpp_fd_set));
 		n = select(maxfd + 1, (fd_set *) &curset, NULL, NULL, &timeout);
@@ -1030,15 +1037,12 @@ signalQEs(CdbDispatchCmdAsync *pParms)
 				/* ready to read. */
 				count = recv(fd, &buf, sizeof(buf), 0);
 
-				if (count == 0 || count == 1) /* done ! */
-				{
-					MPP_FD_CLR(fd, &waitset);
-					/* we may have finished */
-					conn_count--;
-					close(fd);
-					continue;
-				}
-				else if (count < 0 && (errno == EAGAIN || errno == EINTR || errno == EWOULDBLOCK))
+				/*
+				 * Wait for the postmaster to close the connection, which indicates that
+				 * it's processed the request. Note we don't actually expect this read
+				 * to obtain any data, we are just waiting for EOF to be signaled.
+				 */
+				if (count < 0 && (errno == EAGAIN || errno == EINTR || errno == EWOULDBLOCK))
 					continue;
 
 				/*
@@ -1048,7 +1052,6 @@ signalQEs(CdbDispatchCmdAsync *pParms)
 				/* we may have finished */
 				conn_count--;
 				close(fd);
-				continue;
 			}
 		}
 	}
