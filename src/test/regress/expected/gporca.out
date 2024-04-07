@@ -8055,7 +8055,7 @@ select a, c from orca.r, orca.s where a  <> all (select c) order by a, c limit 1
 (10 rows)
 
 select a, (select (select (select c from orca.s where a=c group by c))) as subq from orca.r order by a;
-ERROR:  correlated subquery with skip-level correlations is not supported
+ERROR:  Passing parameters across motion is not supported. (cdbmutate.c:3064)
 with v as (select a,b from orca.r, orca.s where a=c)  select c from orca.s group by c having count(*) not in (select b from v where a=c) order by c;
  c 
 ---

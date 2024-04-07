@@ -544,7 +544,7 @@ select
   ( select min(tb.id) from tb
     where tb.aval = (select ta.val from ta where ta.id = tc.aid) ) as min_tb_id
 from tc;
-ERROR:  correlated subquery with skip-level correlations is not supported
+ERROR:  Passing parameters across motion is not supported. (cdbmutate.c:3064)
 --
 -- Test case for 8.3 "failed to locate grouping columns" bug
 --
@@ -629,7 +629,7 @@ from
    from int8_tbl) sq0
   join
   int4_tbl i4 on dummy = i4.f1;
-ERROR:  correlated subquery with skip-level correlations is not supported
+ERROR:  Passing parameters across motion is not supported. (cdbmutate.c:3064)
 --
 -- Test case for cross-type partial matching in hashed subplan (bug #7597)
 --

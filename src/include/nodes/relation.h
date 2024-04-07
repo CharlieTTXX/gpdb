@@ -143,7 +143,7 @@ typedef struct PlannerGlobal
 	bool		is_parallel_cursor;	/* is the query a parallel retrieve cursor? */
 
 	ApplyShareInputContext share;	/* workspace for GPDB plan sharing */
-
+	bool		is_multi_correlated;	/* does the query has multi-level correlated param? */
 } PlannerGlobal;
 
 /*----------

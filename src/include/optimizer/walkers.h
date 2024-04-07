@@ -35,6 +35,15 @@ typedef struct SubPlanWalkerContext
 	Bitmapset	   *bms_subplans; /* Bitmapset for used subplans */
 } SubPlanWalkerContext;
 
+/*
+ * Structure to hold the params from subplan
+ */
+typedef struct ParamsWalkerContext
+{
+	plan_tree_base_prefix base; /* Required prefix for plan_tree_walker/mutator */
+	Bitmapset	   *subplan_params; /* Bitmapset for params subplan provided */
+} ParamsWalkerContext;
+
 extern void planner_init_plan_tree_base(plan_tree_base_prefix *base, PlannerInfo *root);
 extern void exec_init_plan_tree_base(plan_tree_base_prefix *base, PlannedStmt *stmt);
 extern Plan *plan_tree_base_subplan_get_plan(plan_tree_base_prefix *base, SubPlan *subplan);

@@ -3019,6 +3019,72 @@ fixup_subplans(Plan *top_plan, PlannerInfo *root, SubPlanWalkerContext *context)
 	fixup_subplan_walker((Node *) top_plan, context);
 }
 
+/*
+ * walker for checking params over motion.
+ */
+static bool
+param_subplans_walker(Node *node, ParamsWalkerContext *context)
+{
+	if (node == NULL)
+		return false;
+
+	if (IsA(node, SubPlan))
+	{
+		SubPlan    *subplan = (SubPlan *) node;
+		bool		result = false;
+		Plan	   *childplan = planner_subplan_get_plan((PlannerInfo *)context->base.node, subplan);
+
+		if (subplan->parParam != NULL)
+		{
+			ListCell *lc = NULL;
+			Bitmapset *subplan_params = NULL;
+
+			foreach(lc, subplan->parParam)
+			{
+				int param = lfirst_int(lc);
+				subplan_params = bms_add_member(subplan_params, param);
+			}
+
+			context->subplan_params = bms_union(context->subplan_params, subplan_params);
+			result = plan_tree_walker((Node *)childplan, param_subplans_walker, context);
+			context->subplan_params = bms_del_members(context->subplan_params, subplan_params);
+
+			return result;
+		}
+	}
+
+	if (IsA(node, Motion))
+	{
+		Plan *motion = (Plan *)node;
+
+		Bitmapset *motion_params = bms_intersect(motion->extParam, context->subplan_params);
+
+		if (!bms_is_empty(motion_params))
+			elog(ERROR, "Passing parameters across motion is not supported.");
+	}
+
+	return plan_tree_walker(node, param_subplans_walker, context);
+}
+
+/*
+ * Entry point for checking whether there are params across motion
+ * in subplan scenario.
+ */
+void
+param_subplans(Plan *top_plan, PlannerInfo *root, ParamsWalkerContext *context)
+{
+	context->base.node = (Node *) root;
+	context->subplan_params = NULL;
+
+	/*
+	 * If there are no subplans, no fixup will be required
+	 */
+	if (!root->glob->subplans)
+		return;
+
+	param_subplans_walker((Node *) top_plan, context);
+}
+
 
 /*
  * Remove unused subplans from PlannerGlobal subplans

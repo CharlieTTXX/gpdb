@@ -302,6 +302,7 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	glob->lastRowMarkId = 0;
 	glob->transientPlan = false;
 	glob->oneoffPlan = false;
+	glob->is_multi_correlated = false;
 	/* ApplyShareInputContext initialization. */
 	glob->share.producers = NULL;
 	glob->share.producer_count = 0;
@@ -442,6 +443,17 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 		lfirst(lp) = replace_shareinput_targetlists(root, subplan);
 	}
 	top_plan = replace_shareinput_targetlists(root, top_plan);
+
+	/*
+	 * Before we construct final plan we need to check params over
+	 * motion if glob->is_multi_correlated is true which may be set
+	 * in check_multi_subquery_correlated().
+	 */
+	if (root->glob->is_multi_correlated)
+	{
+		ParamsWalkerContext param_context;
+		param_subplans(top_plan, root, &param_context);
+	}
 
 	/* build the PlannedStmt result */
 	result = makeNode(PlannedStmt);

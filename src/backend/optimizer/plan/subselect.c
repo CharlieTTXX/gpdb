@@ -529,6 +529,9 @@ check_multi_subquery_correlated(PlannerInfo *root, Var *var)
 	if (var->varlevelsup <= 1)
 		return;
 
+	if (root->glob->is_multi_correlated)
+		return;
+
 	if (list_length(root->parse->rtable) == 0)
 		return;
 
@@ -545,9 +548,8 @@ check_multi_subquery_correlated(PlannerInfo *root, Var *var)
 		if(parent_root->parse->hasSubLinks &&
 			QueryHasDistributedRelation(root->parse, parent_root->is_correlated_subplan))
 		{
-			ereport(ERROR,
-					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					errmsg("correlated subquery with skip-level correlations is not supported")));
+			root->glob->is_multi_correlated = true;
+			return;
 		}
 
 		root = root->parent_root;
