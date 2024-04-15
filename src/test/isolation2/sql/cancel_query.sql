@@ -56,6 +56,16 @@ CREATE TABLE nbc(a int, b int, c int);
 INSERT INTO nbc SELECT i,i,i FROM generate_series(1, 100) i;
 analyze nbc;
 
+-- test pg_cancel_backend() with entrydb plan
+0: SELECT gp_inject_fault_infinite('before_exec_scan', 'suspend', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content >= 0;
+
+1&: SELECT * FROM nbc a1, nbc a2, pg_class a3;
+2: SELECT pg_cancel_backend(pid) FROM pg_stat_activity WHERE query LIKE 'SELECT * FROM nbc a1, nbc a2, pg_class a3%' AND application_name = 'pg_regress';
+1<:
+
+SELECT gp_inject_fault_infinite('before_exec_scan', 'reset', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content >= 0;
+
+-- test async_cancel_qe fault injection
 0: SELECT gp_inject_fault('async_cancel_qe', 'skip', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content < 0;
 0: SELECT gp_inject_fault_infinite('before_exec_scan', 'suspend', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content >= 0;
 

@@ -920,7 +920,7 @@ signalQEs(CdbDispatchCmdAsync *pParms)
 	mpp_fd_set	waitset,
 				curset;
 	int			maxfd = -1;
-	Bitmapset	*segbp = NULL;
+	List		*seglist = NULL;
 	DispatchWaitMode waitMode = pParms->waitMode;
 	struct 	timeval timeout;
 	int timeout_count = 0;
@@ -947,7 +947,7 @@ signalQEs(CdbDispatchCmdAsync *pParms)
 			(pParms->waitMode == DISPATCH_WAIT_ACK_ROOT &&
 			 dispatchResult->receivedAckMsg) ||
 			cdbconn_isBadConnection(segdbDesc) ||
-			bms_is_member(segdbDesc->segindex, segbp))
+			list_member_int(seglist, segdbDesc->segindex))
 			continue;
 
 		memset(errbuf, 0, sizeof(errbuf));
@@ -955,7 +955,7 @@ signalQEs(CdbDispatchCmdAsync *pParms)
 #ifdef FAULT_INJECTOR
 		if (SIMPLE_FAULT_INJECTOR("async_cancel_qe") == FaultInjectorTypeSkip)
 		{
-			segbp = bms_add_member(segbp, segdbDesc->segindex);
+			seglist = lappend_int(seglist, segdbDesc->segindex);
 			conn_count++;
 			continue;
 		}
@@ -967,7 +967,7 @@ signalQEs(CdbDispatchCmdAsync *pParms)
 		if (fd_socket != PGINVALID_SOCKET)
 		{
 			dispatchResult->sentSignal = waitMode;
-			segbp = bms_add_member(segbp, segdbDesc->segindex);
+			seglist = lappend_int(seglist, segdbDesc->segindex);
 
 			MPP_FD_SET(fd_socket, &waitset);
 			if (fd_socket > maxfd)
