@@ -220,6 +220,12 @@ typedef struct CancelRequestPacket
 	uint32		cancelAuthCode; /* secret key to authorize cancel */
 } CancelRequestPacket;
 
+/*
+ * MPP Cancel Request specific to GPDB
+ * While sessionid is sufficient for canceling all QEs in one segment,
+ * we need to retain the backend(PID) that established cancelAuthorization
+ * with QD.
+ */
 typedef struct CancelMppRequestPacket
 {
 	/* Note that each field is stored in network byte order! */

@@ -157,6 +157,7 @@ bool		gp_create_table_random_default_distribution = true;
 bool		gp_allow_non_uniform_partitioning_ddl = true;
 bool		gp_print_create_gang_time = false;
 int			dtx_phase2_retry_second = 0;
+int			gp_cancel_timeout = 0;
 
 bool gp_log_suboverflow_statement = false;
 
@@ -4416,6 +4417,17 @@ struct config_int ConfigureNamesInt_gp[] =
 		NULL, NULL, NULL
 	},
 #endif
+
+	{
+		{"gp_cancel_timeout", PGC_SUSET, GP_ARRAY_TUNING,
+			gettext_noop("Maximum time for which coordinator tries to finish a prepared transaction"),
+			NULL,
+			GUC_SUPERUSER_ONLY |  GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_UNIT_S
+		},
+		&gp_cancel_timeout,
+		60, 0, INT_MAX,
+		NULL, NULL, NULL
+	},
 
 	/* End-of-list marker */
 	{

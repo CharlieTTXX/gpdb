@@ -138,6 +138,7 @@
 		"gp_autostats_on_change_threshold",
 		"gp_autovacuum_scope",
 		"gp_cached_segworkers_threshold",
+		"gp_cancel_timeout",
 		"gp_command_count",
 		"gp_connection_send_timeout",
 		"gp_contentid",

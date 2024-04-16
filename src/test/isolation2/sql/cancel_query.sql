@@ -65,6 +65,28 @@ analyze nbc;
 
 SELECT gp_inject_fault_infinite('before_exec_scan', 'reset', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content >= 0;
 
+-- test pg_cancel_backend() with initplan
+0: SELECT gp_inject_fault_infinite('before_exec_scan', 'suspend', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content >= 0;
+
+1&: SELECT ARRAY(SELECT a FROM nbc) FROM nbc;
+2: SELECT pg_cancel_backend(pid) FROM pg_stat_activity WHERE query LIKE 'SELECT ARRAY(SELECT a FROM nbc) FROM nbc%';
+1<:
+
+SELECT gp_inject_fault_infinite('before_exec_scan', 'reset', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content >= 0;
+
+-- test cursor case
+0: SELECT gp_inject_fault_infinite('before_exec_scan', 'suspend', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content >= 0;
+
+1: begin;
+1: declare cs1 cursor for SELECT * FROM nbc a1, nbc a2, nbc a3;
+1&: fetch cs1;
+
+2: SELECT pg_cancel_backend(pid) FROM pg_stat_activity WHERE query LIKE 'fetch cs1%';
+1<:
+1q:
+
+SELECT gp_inject_fault_infinite('before_exec_scan', 'reset', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content >= 0;
+
 -- test async_cancel_qe fault injection
 0: SELECT gp_inject_fault('async_cancel_qe', 'skip', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content < 0;
 0: SELECT gp_inject_fault_infinite('before_exec_scan', 'suspend', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content >= 0;

@@ -2879,7 +2879,7 @@ SendMppProcSignal(int sessionid, MsgType code)
 	{
 		int pid = lfirst_int(lc);
 
-		elog(LOG, "SendMppProcSignal is canceling pid QEPid %d", pid);
+		elog(DEBUG5, "SendMppProcSignal is canceling pid QEPid %d", pid);
 
 		if(code == FINISH_REQUEST_CODE)
 			SendProcSignal(pid, PROCSIG_QUERY_FINISH,

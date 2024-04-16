@@ -983,13 +983,17 @@ signalQEs(CdbDispatchCmdAsync *pParms)
 
 	/*
 	 * select() sockets return by cdbconn_signalQE_nonblock.
+	 * Compared to WaitEvent, select() is much simpler, and
+	 * it's preferable not to allocate memory during exception
+	 * processing (WaitEvent handles that).
 	 *
-	 * Note: we will set 6s timeout for select and repeat 10
-	 * times, so if we wait over one minute then raise error out.
+	 * Note: we will set 10s timeout for select() and repeat n
+	 * times, if the total time gp_cancel_timeout then we'll
+	 * raise error out.
 	 */
 	while(1)
 	{
-		timeout.tv_sec = 6;
+		timeout.tv_sec = 10;
 		timeout.tv_usec = 0;
 		int			saved_err;
 		ListCell *lc = NULL;
@@ -1000,10 +1004,9 @@ signalQEs(CdbDispatchCmdAsync *pParms)
 			return;
 		}
 
-		/* we should retry 10 times. */
-		if (timeout_count >= 10)
-			elog(ERROR, "after waiting for responses for over one minutes, there are still %d"
-						" segment that have not responded.", conn_count);
+		if (timeout_count * timeout.tv_sec >= gp_cancel_timeout)
+			elog(ERROR, "after waiting for responses for over %d seconds, there are still %d"
+						" segment that have not responded.", gp_cancel_timeout,conn_count);
 
 		memcpy(&curset, &waitset, sizeof(mpp_fd_set));
 		n = select(maxfd + 1, (fd_set *) &curset, NULL, NULL, &timeout);
