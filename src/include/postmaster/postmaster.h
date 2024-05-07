@@ -75,6 +75,7 @@ extern void ShmemBackendArrayAllocation(void);
 
 extern void load_auxiliary_libraries(void);
 extern bool amAuxiliaryBgWorker(void);
+extern void signal_child(pid_t pid, int signal);
 
 #ifdef ENABLE_IC_PROXY
 # define IC_PROXY_NUM_BGWORKER 1

@@ -519,7 +519,6 @@ static int	initMasks(fd_set *rmask);
 static void report_fork_failure_to_client(Port *port, int errnum);
 static CAC_state canAcceptConnections(int backend_type);
 static bool RandomCancelKey(int32 *cancel_key);
-static void signal_child(pid_t pid, int signal);
 static bool SignalSomeChildren(int signal, int targets);
 static void TerminateChildren(int signal);
 
@@ -2860,38 +2859,6 @@ SendNegotiateProtocolVersion(List *unrecognized_protocol_options)
 	/* no need to flush, some other message will follow */
 }
 
-/*
- * Send signals to QE pids based on same sessionid in segment.
- */
-static void
-SendMppProcSignal(int sessionid, MsgType code)
-{
-	ListCell	*lc = NULL;
-	List 		*QEPids = GetSessionQEPids(sessionid);
-
-	ereport(LOG,
-			(errmsg("start sending signals to all QEs in segment, QEs len %d, session %d, MsgType %u", 
-			list_length(QEPids),
-			sessionid,
-			code)));
-
-	foreach(lc, QEPids)
-	{
-		int pid = lfirst_int(lc);
-
-		elog(DEBUG5, "SendMppProcSignal is canceling pid QEPid %d", pid);
-
-		if(code == FINISH_REQUEST_CODE)
-			SendProcSignal(pid, PROCSIG_QUERY_FINISH,
-						   InvalidBackendId);
-		else
-			signal_child(pid, SIGINT);
-	}
-
-	list_free(QEPids);
-	return;
-}
-
 static void
 processMppCancelRequest(Port *port, void *pkt, MsgType code)
 {
@@ -4594,7 +4561,7 @@ PostmasterStateMachine(void)
  * to spawn any grandchild processes.  We also assume that signaling the
  * child twice will not cause any problems.
  */
-static void
+void
 signal_child(pid_t pid, int signal)
 {
 	if (kill(pid, signal) < 0)

@@ -65,6 +65,7 @@
 #include "utils/snapmgr.h"
 #include "utils/guc.h"
 #include "utils/memutils.h"
+#include "postmaster/postmaster.h"
 
 #include "access/xact.h"		/* setting the shared xid */
 #include "cdb/cdbtm.h"
@@ -5369,27 +5370,38 @@ ResGroupMoveNotifyInitiator(pid_t callerPid)
 }
 
 /*
- * Obtain all QE PIDs within one segment sharing the same session ID.
+ * Send signals to QE pids based on same sessionid in segment.
  */
-List *
-GetSessionQEPids(int mppSessionId)
+void
+SendMppProcSignal(int sessionid, MsgType code)
 {
 	int				index;
 	ProcArrayStruct *arrayP = procArray;
-	List 			*QEPids = NIL;
+
+	ereport(LOG,
+			(errmsg("start sending signals to all QEs in segment, session %d, MsgType %u",
+			sessionid,
+			code)));
 
 	LWLockAcquire(ProcArrayLock, LW_SHARED);
 
-	/* Get all QE pids base on sessionid */
+	/* send cancel signal to QEs which has same sessionid */
 	for (index = 0; index < arrayP->numProcs; index++)
 	{
 		PGPROC *proc = &allProcs[arrayP->pgprocnos[index]];
 
-		if (proc->mppSessionId == mppSessionId)
-			QEPids = lappend_int(QEPids, proc->pid);
+		if (proc->mppSessionId == sessionid)
+		{
+			elog(DEBUG5, "SendMppProcSignal is canceling pid QEPid %d", proc->pid);
+
+			if(code == FINISH_REQUEST_CODE)
+				SendProcSignal(proc->pid, PROCSIG_QUERY_FINISH, proc->backendId);
+			else
+				signal_child(proc->pid, SIGINT);
+		}
 	}
 
 	LWLockRelease(ProcArrayLock);
 
-	return QEPids;
+	return;
 }

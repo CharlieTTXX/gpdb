@@ -18,6 +18,7 @@
 #include "storage/standby.h"
 #include "utils/relcache.h"
 #include "utils/snapshot.h"
+#include "libpq/pqcomm.h"
 
 #include "cdb/cdbpublic.h"
 #include "cdb/cdbtm.h"
@@ -158,6 +159,6 @@ extern bool ResGroupMoveSignalTarget(int sessionId, void *slot, Oid groupId,
 								bool isExecutor);
 extern void ResGroupMoveCheckTargetReady(int sessionId, bool *clean, bool *result);
 extern void ResGroupMoveNotifyInitiator(pid_t callerPid);
-extern List *GetSessionQEPids(int mppSessionId);
+extern void SendMppProcSignal(int sessionid, MsgType code);
 
 #endif							/* PROCARRAY_H */
