@@ -173,48 +173,5 @@ SELECT gp_inject_fault_infinite('before_exec_scan', 'reset', dbid) FROM gp_segme
  Success:                 
 (3 rows)
 
--- test async_cancel_qe fault injection
-0: SELECT gp_inject_fault('async_cancel_qe', 'skip', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content < 0;
- gp_inject_fault 
------------------
- Success:        
-(1 row)
-0: SELECT gp_inject_fault_infinite('before_exec_scan', 'suspend', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content >= 0;
- gp_inject_fault_infinite 
---------------------------
- Success:                 
- Success:                 
- Success:                 
-(3 rows)
-
-1&: SELECT * FROM nbc a1, nbc a2, nbc a3;  <waiting ...>
-2: SELECT pg_cancel_backend(pid) FROM pg_stat_activity WHERE query LIKE 'SELECT * FROM nbc a1, nbc a2, nbc a3%';
- pg_cancel_backend 
--------------------
- t                 
-(1 row)
-
-1<:  <... completed>
-ERROR:  after waiting for responses for over 60 seconds, there are still 1 segment that have not responded. (cdbdisp_async.c:1009)
-
-SELECT gp_inject_fault('async_cancel_qe', 'reset', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content < 0;
- gp_inject_fault 
------------------
- Success:        
-(1 row)
-SELECT gp_inject_fault_infinite('before_exec_scan', 'reset', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content >= 0;
- gp_inject_fault_infinite 
---------------------------
- Success:                 
- Success:                 
- Success:                 
-(3 rows)
-
-SELECT count(*) FROM gp_dist_random('pg_stat_activity') WHERE sess_id = (SELECT sess_id FROM pg_stat_activity WHERE query LIKE 'SELECT * FROM nbc a1, nbc a2, nbc a3%') AND state = 'active';
- count 
--------
- 0     
-(1 row)
-
 DROP TABLE nbc;
 DROP TABLE

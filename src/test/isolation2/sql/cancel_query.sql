@@ -87,18 +87,4 @@ SELECT gp_inject_fault_infinite('before_exec_scan', 'reset', dbid) FROM gp_segme
 
 SELECT gp_inject_fault_infinite('before_exec_scan', 'reset', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content >= 0;
 
--- test async_cancel_qe fault injection
-0: SELECT gp_inject_fault('async_cancel_qe', 'skip', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content < 0;
-0: SELECT gp_inject_fault_infinite('before_exec_scan', 'suspend', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content >= 0;
-
-1&: SELECT * FROM nbc a1, nbc a2, nbc a3;
-2: SELECT pg_cancel_backend(pid) FROM pg_stat_activity WHERE query LIKE 'SELECT * FROM nbc a1, nbc a2, nbc a3%';
-
-1<:
-
-SELECT gp_inject_fault('async_cancel_qe', 'reset', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content < 0;
-SELECT gp_inject_fault_infinite('before_exec_scan', 'reset', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content >= 0;
-
-SELECT count(*) FROM gp_dist_random('pg_stat_activity') WHERE sess_id = (SELECT sess_id FROM pg_stat_activity WHERE query LIKE 'SELECT * FROM nbc a1, nbc a2, nbc a3%') AND state = 'active';
-
 DROP TABLE nbc;

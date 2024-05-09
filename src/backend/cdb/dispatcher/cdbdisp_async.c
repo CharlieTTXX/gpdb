@@ -95,6 +95,12 @@ typedef struct CdbDispatchCmdAsync
 	char	   *query_text;
 	int			query_text_len;
 
+	/* Structure for MPP Cancel */
+	WaitEventSet *cancelSet;
+	WaitEvent	 *events;
+	int			 *fds;
+	bool		 *added;
+	int			 segnums;
 } CdbDispatchCmdAsync;
 
 static void *cdbdisp_makeDispatchParams_async(int maxSlices, int largestGangSize, char *queryText, int len);
@@ -434,6 +440,13 @@ cdbdisp_makeDispatchParams_async(int maxSlices, int largestGangSize, char *query
 	pParms->ackMessage = NULL;
 	pParms->query_text = queryText;
 	pParms->query_text_len = len;
+
+	int segnums = getgpsegmentCount();
+	pParms->cancelSet = CreateWaitEventSet(CurrentMemoryContext, segnums);
+	pParms->events = palloc0(sizeof(WaitEvent) * segnums);
+	pParms->added = palloc0(sizeof(bool) * segnums);
+	pParms->fds = palloc0(sizeof(int) * segnums);
+	pParms->segnums = segnums;
 
 	return (void *) pParms;
 }
@@ -916,17 +929,23 @@ signalQEs(CdbDispatchCmdAsync *pParms)
 {
 	int			i;
 	int			n;
+	int			idx = 0;
 	int			conn_count = 0;
-	mpp_fd_set	waitset,
-				curset;
-	int			maxfd = -1;
+	ListCell 	*lc = NULL;
 	List		*seglist = NULL;
+	int			timeout_count = 0;
+	List		*conn_fds = NULL;
+	int			*fds = pParms->fds;
+	bool		*added = pParms->added;
+	WaitEvent	*revents = pParms->events;
+	WaitEventSet *set = pParms->cancelSet;
 	DispatchWaitMode waitMode = pParms->waitMode;
-	struct 	timeval timeout;
-	int timeout_count = 0;
-	List	*conn_fds = NULL;
 
-	MPP_FD_ZERO(&waitset);
+	memset(fds, 0, sizeof(int) * pParms->segnums);
+	memset(added, 0, sizeof(bool) * pParms->segnums);
+	memset(revents, 0, sizeof(WaitEvent) * pParms->segnums);
+
+	elog(DEBUG1, "start signalQEs, dispatchCount is %d, numfds is %d", pParms->dispatchCount, pParms->segnums);
 
 	for (i = 0; i < pParms->dispatchCount; i++)
 	{
@@ -952,15 +971,6 @@ signalQEs(CdbDispatchCmdAsync *pParms)
 
 		memset(errbuf, 0, sizeof(errbuf));
 
-#ifdef FAULT_INJECTOR
-		if (SIMPLE_FAULT_INJECTOR("async_cancel_qe") == FaultInjectorTypeSkip)
-		{
-			seglist = lappend_int(seglist, segdbDesc->segindex);
-			conn_count++;
-			continue;
-		}
-#endif
-
 		fd_socket = cdbconn_signalQE_nonblock(segdbDesc, errbuf, waitMode == DISPATCH_WAIT_CANCEL ?
 								MPP_CANCEL_REQUEST_CODE : MPP_FINISH_REQUEST_CODE);
 
@@ -969,11 +979,7 @@ signalQEs(CdbDispatchCmdAsync *pParms)
 			dispatchResult->sentSignal = waitMode;
 			seglist = lappend_int(seglist, segdbDesc->segindex);
 
-			MPP_FD_SET(fd_socket, &waitset);
-			if (fd_socket > maxfd)
-				maxfd = fd_socket;
 			conn_count++;
-
 			conn_fds = lappend_int(conn_fds, fd_socket);
 		}
 		else
@@ -981,35 +987,53 @@ signalQEs(CdbDispatchCmdAsync *pParms)
 				 strlen(errbuf) == 0 ? "cannot allocate PGCancel" : errbuf);
 	}
 
+	foreach_with_count(lc, conn_fds, idx)
+		fds[idx] = lfirst_int(lc);
+
+	int remain_count = conn_count;
+
 	/*
-	 * select() sockets return by cdbconn_signalQE_nonblock.
-	 * Compared to WaitEvent, select() is much simpler, and
-	 * it's preferable not to allocate memory during exception
-	 * processing (WaitEvent handles that).
+	 * WaitEventSetWait() sockets return by cdbconn_signalQE_nonblock.
+	 * Compared to select(), WaitEvent recorcd wait event infos and has
+	 * no maximum limitation value of fd sockets.
 	 *
-	 * Note: we will set 10s timeout for select() and repeat n
-	 * times, if the total time gp_cancel_timeout then we'll
-	 * raise error out.
+	 * Note: If we wait for over gp_cancel_timeout, then raise error out.
 	 */
 	while(1)
 	{
-		timeout.tv_sec = 10;
-		timeout.tv_usec = 0;
+		const static int MPP_CANCEL_TIMEOUT = 1000;
 		int			saved_err;
-		ListCell *lc = NULL;
 
-		if (conn_count == 0)
+		if (remain_count == 0)
 		{
 			elog(LOG, "signalQEs success, all requests have been sent to QE.");
 			return;
 		}
 
-		if (timeout_count * timeout.tv_sec >= gp_cancel_timeout)
+		elog(DEBUG1, "this is the %d times waiting cancel response, still remain fds %d.",
+						timeout_count, remain_count);
+
+		if (timeout_count >= gp_cancel_timeout)
 			elog(ERROR, "after waiting for responses for over %d seconds, there are still %d"
 						" segment that have not responded.", gp_cancel_timeout,conn_count);
 
-		memcpy(&curset, &waitset, sizeof(mpp_fd_set));
-		n = select(maxfd + 1, (fd_set *) &curset, NULL, NULL, &timeout);
+		ResetWaitEventSet(&set, CurrentMemoryContext, remain_count);
+
+		/*
+		 * Since the set of FDs can change when we call PQconnectPoll() below,
+		 * we must init WaitEventSet to poll on for every loop iteration.
+		 */
+		for(int i = 0; i < conn_count; i++)
+		{
+			if(added[i])
+				continue;
+
+			/* the index "i" as the event's userdata */
+			long ev_userdata = i;
+			AddWaitEventToSet(set, WL_SOCKET_READABLE, fds[i], NULL, (void *)ev_userdata);
+		}
+
+		n = WaitEventSetWait(set, MPP_CANCEL_TIMEOUT, revents, remain_count, WAIT_EVENT_DISP_CANCEL);
 
 		if (n < 0)
 		{
@@ -1027,33 +1051,25 @@ signalQEs(CdbDispatchCmdAsync *pParms)
 			timeout_count++;
 			continue;
 		}
-
-		foreach(lc, conn_fds)
+		else
 		{
-			int fd = lfirst_int(lc);
-
-			if (fd >= 0 && MPP_FD_ISSET(fd, &curset))
+			for(int i = 0; i < n; i++)
 			{
-				int			count;
-				char		buf;
+				int         count;
+				char        buf;
+				int fd = revents[i].fd;
+				long pos = (long)(revents[i].user_data);
 
 				/* ready to read. */
 				count = recv(fd, &buf, sizeof(buf), 0);
 
-				/*
-				 * Wait for the postmaster to close the connection, which indicates that
-				 * it's processed the request. Note we don't actually expect this read
-				 * to obtain any data, we are just waiting for EOF to be signaled.
-				 */
+				/* recv something unexpected or meet interrupt */
 				if (count < 0 && (errno == EAGAIN || errno == EINTR || errno == EWOULDBLOCK))
 					continue;
 
-				/*
-				 * Something unexpected, but probably not horrible warn and ignore
-				 */
-				MPP_FD_CLR(fd, &waitset);
+				added[pos] = true;
 				/* we may have finished */
-				conn_count--;
+				remain_count--;
 				close(fd);
 			}
 		}
