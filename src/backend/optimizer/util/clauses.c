@@ -551,7 +551,7 @@ count_agg_clauses_walker(Node *node, count_agg_clauses_context *context)
 
 		/* count it; note ordered-set aggs always have nonempty aggorder */
 		costs->numAggs++;
-		if (aggref->aggorder != NIL || aggref->aggdistinct != NIL)
+		if (aggref->aggorder != NIL)
 			costs->numOrderedAggs++;
 
 		/*
