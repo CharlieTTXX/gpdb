@@ -1613,11 +1613,6 @@ plan_append_aggs_with_rewrite(PlannerInfo *root,
 	List *rollup_subroots = NULL;
 	List *rollup_subplans = NULL;
 
-	if (context->agg_costs->numPureOrderedAggs != 0 ||
-		context->agg_costs->numOrderedAggs == 0 ||
-		!gp_enable_dqa_pruning)
-		return NULL;
-
 	context->grpColIdx = context->current_rollup->colIdx;
 	context->grpOperators = context->current_rollup->operators;
 
