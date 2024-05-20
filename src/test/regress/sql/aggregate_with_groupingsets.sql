@@ -147,6 +147,24 @@ select i, j, count(distinct j) from foo_gset_dqa GROUP BY grouping sets((i), (j)
 
 drop table foo_gset_dqa;
 
+set gp_enable_groupext_dqa_pruning = on;
+create table rp(a int, b int, c int, d int, e int, f int, g int, h int, i int, j int);
+insert into rp select i,i,i,i,i,i,i,i,i,i from generate_series(1, 2) i;
+
+explain (costs off)
+select sum(a), count(distinct h), count(distinct i), count(distinct j) from rp group by a, grouping sets(rollup(c, d), e, (e, f), g);
+select sum(a), count(distinct h), count(distinct i), count(distinct j) from rp group by a, grouping sets(rollup(c, d), e, (e, f), g);
+
+explain (costs off)
+select sum(a), count(distinct h), count(distinct i), count(distinct j) from rp group by a, grouping sets(rollup(b, c), rollup(d, e), rollup(f ,g));
+select sum(a), count(distinct h), count(distinct i), count(distinct j) from rp group by a, grouping sets(rollup(b, c), rollup(d, e), rollup(f ,g));
+
+explain (costs off)
+select sum(a), count(distinct h), count(distinct i), count(distinct j) from rp group by a, grouping sets(rollup(c), (e), rollup(d, g, f));
+select sum(a), count(distinct h), count(distinct i), count(distinct j) from rp group by a, grouping sets(rollup(c), (e), rollup(d, g, f));
+reset gp_enable_groupext_dqa_pruning;
+drop table rp;
+
 --
 -- Reset settings
 --

@@ -715,6 +715,14 @@ extern bool gp_enable_groupext_distinct_pruning;
 extern bool gp_enable_groupext_distinct_gather;
 
 /*
+ * "gp_enable_groupext_dqa_pruning"
+ *
+ * Should Greenplum bias planner estimates so as to favor the use of
+ * rewrite rollup plan instead of gather plan on DQA scenario.
+ */
+extern bool gp_enable_groupext_dqa_pruning;
+
+/*
  * "gp_distinct_grouping_sets_threshold"
  *
  * The planner will treat gp_enable_groupext_distinct_pruning as 'off'
