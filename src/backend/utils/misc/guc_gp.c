@@ -290,6 +290,7 @@ bool		gp_eager_one_phase_agg = FALSE;
 bool		gp_eager_two_phase_agg = FALSE;
 bool		gp_enable_groupext_distinct_pruning = true;
 bool		gp_enable_groupext_distinct_gather = true;
+bool		gp_enable_groupext_dqa_pruning = false;
 bool		gp_dynamic_partition_pruning = true;
 bool		gp_log_dynamic_partition_pruning = false;
 bool		gp_cte_sharing = false;
@@ -2081,7 +2082,7 @@ struct config_bool ConfigureNamesBool_gp[] =
 		true, NULL, NULL
 	},
 
-		{
+	{
 		{"gp_enable_mdqa_shared_scan", PGC_USERSET, QUERY_TUNING_METHOD,
 			gettext_noop("Planner Only. True: planner will decide whether to use shared scan in the plan for"
 			"multiple DQA query based on costs calculation for better performance. False: disable it to avoid"
@@ -2091,6 +2092,16 @@ struct config_bool ConfigureNamesBool_gp[] =
 		},
 		&gp_enable_mdqa_shared_scan,
 		true, NULL, NULL
+	},
+
+	{
+		{"gp_enable_groupext_dqa_pruning", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("xxx"),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&gp_enable_groupext_dqa_pruning,
+		false, NULL, NULL
 	},
 
 	{

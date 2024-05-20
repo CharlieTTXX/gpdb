@@ -179,6 +179,7 @@
 		"gp_enable_gpperfmon",
 		"gp_enable_groupext_distinct_gather",
 		"gp_enable_groupext_distinct_pruning",
+		"gp_enable_groupext_dqa_pruning",
 		"gp_enable_hashjoin_size_heuristic",
 		"gp_enable_interconnect_aggressive_retry",
 		"gp_enable_minmax_optimization",

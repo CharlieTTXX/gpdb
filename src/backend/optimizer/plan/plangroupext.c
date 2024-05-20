@@ -193,6 +193,13 @@ static Node *replace_grouping_columns(Node *node,
 									  bool is_targetList);
 static bool contain_groupingfunc(Node *node);
 static void checkGroupExtensionQuery(CanonicalGroupingSets *cgs, List *targetList);
+static void
+rebuild_append_simple_rel_and_rte(PlannerInfo *root,
+								  List *rtable,
+								  List *subplans,
+								  List *subroots);
+static PlannerInfo *
+add_subroot_for_subqueryscan(PlannerInfo *root);
 
 /**
  * These functions are to be used for debugging purpose only.
@@ -1089,7 +1096,11 @@ make_append_aggs_for_rollup(PlannerInfo *root,
 	GroupExtContext context_copy = { };
 	double numGroups = *(context->p_dNumGroups);
 	double numGroups_for_gather = 0;
-	bool has_ordered_aggs = (context->agg_costs->numOrderedAggs > 0);
+	bool has_ordered_aggs = (context->agg_costs->numPureOrderedAggs > 0);
+
+	int orig_simple_rel_array_size = root->simple_rel_array_size;
+	RelOptInfo **orig_simple_rel_array = root->simple_rel_array;
+	RangeTblEntry **orig_simple_rte_array = root->simple_rte_array;
 
 	/* Plan a list of plans, one for each rollup level. */
 	if (root->config->gp_enable_groupext_distinct_gather ||
@@ -1132,6 +1143,13 @@ make_append_aggs_for_rollup(PlannerInfo *root,
 				&& rewrite_agg_plan->startup_cost < rewrite_agg_plan->startup_cost)
 		{
 			result_plan = rewrite_agg_plan;
+		}
+		else
+		{
+			/* resume origin root informations for gather plan */
+			root->simple_rel_array_size = orig_simple_rel_array_size;
+			root->simple_rel_array = orig_simple_rel_array;
+			root->simple_rte_array = orig_simple_rte_array;
 		}
 	}
 
@@ -1585,12 +1603,20 @@ plan_append_aggs_with_rewrite(PlannerInfo *root,
 	Query *orig_query = root->parse;
 	struct RelOptInfo **orig_rel_array = root->simple_rel_array;
 	int orig_rel_array_size = root->simple_rel_array_size;
+	RangeTblEntry **orig_rte_array = root->simple_rte_array;
 	Query *final_query = NULL;
 	uint64 grouping = 0;
 	int num_subplans = 0;
 	int subplan_no = 0;
 	double orig_numGroups = *context->p_dNumGroups;
 	double new_numGroups = 0;
+	List *rollup_subroots = NULL;
+	List *rollup_subplans = NULL;
+
+	if (context->agg_costs->numPureOrderedAggs != 0 ||
+		context->agg_costs->numOrderedAggs == 0 ||
+		!gp_enable_dqa_pruning)
+		return NULL;
 
 	context->grpColIdx = context->current_rollup->colIdx;
 	context->grpOperators = context->current_rollup->operators;
@@ -1652,10 +1678,15 @@ plan_append_aggs_with_rewrite(PlannerInfo *root,
 			root->simple_rel_array_size = orig_rel_array_size;
 			root->simple_rel_array = (RelOptInfo **)palloc0(sz);
 			memcpy(root->simple_rel_array, orig_rel_array, sz);
+
+			sz = orig_rel_array_size * sizeof(RangeTblEntry *);
+			root->simple_rte_array = (RangeTblEntry **)palloc0(sz);
+			memcpy(root->simple_rte_array, orig_rte_array, sz);
 		}
 		else
 		{
 			root->simple_rel_array = orig_rel_array;
+			root->simple_rte_array = orig_rte_array;
 			root->simple_rel_array_size = orig_rel_array_size;
 		}
 
@@ -1707,6 +1738,9 @@ plan_append_aggs_with_rewrite(PlannerInfo *root,
 												 NIL,
 												 list_length(final_query->rtable),
 												 agg_plan);
+			PlannerInfo *rollup_root = add_subroot_for_subqueryscan(root);
+			rollup_subroots = lappend(rollup_subroots, rollup_root);
+			rollup_subplans = lappend(rollup_subplans, agg_plan);
 			mark_passthru_locus(agg_plan, true, true);
 			pfree(resno_map);
 		}
@@ -1714,6 +1748,20 @@ plan_append_aggs_with_rewrite(PlannerInfo *root,
 		else
 		{
 			final_query = root->parse;
+
+			for (int i = 1; i < root->simple_rel_array_size; i++)
+			{
+				if (root->simple_rel_array[i] != NULL)
+				{
+					rollup_subroots = lappend(rollup_subroots, root->simple_rel_array[i]->subroot);
+					rollup_subplans = lappend(rollup_subplans, root->simple_rel_array[i]->subplan);
+				}
+				else
+				{
+					rollup_subroots = lappend(rollup_subroots, NULL);
+					rollup_subplans = lappend(rollup_subplans, NULL);
+				}
+			}
 		}
 
 		agg_plans = lappend(agg_plans, agg_plan);
@@ -1727,8 +1775,20 @@ plan_append_aggs_with_rewrite(PlannerInfo *root,
 	root->simple_rel_array_size = orig_rel_array_size;
 	memcpy(root->parse, final_query, sizeof(Query));
 
-	result_plan = add_append_node(root, agg_plans, context);
-	
+	rebuild_append_simple_rel_and_rte(root,
+									  final_query->rtable,
+									  rollup_subplans,
+									  rollup_subroots);
+
+	if (list_length(agg_plans) > 1)
+	{
+		result_plan = add_append_node(root, agg_plans, context);
+	}
+	else
+	{
+		result_plan = (Plan *)linitial(agg_plans);
+	}
+
 	return result_plan;
 }
 
@@ -1906,6 +1966,37 @@ generate_list_simple_rel_array(PlannerInfo *root, int num_subplans)
 	}
 
 	return relArrayList;
+}
+
+/*
+ * Generate a list of simple_rte_array
+ */
+static List *
+generate_list_simple_rte_array(PlannerInfo *root, int num_subplans)
+{
+	int i;
+	int j;
+	List *rteArrayList = NULL;
+	int rteArrayLen = list_length(root->parse->rtable);
+
+	Assert((rteArrayLen + 1) == root->simple_rel_array_size);
+
+	for (i = 0; i < num_subplans; i++)
+	{
+		int arraySize = root->simple_rel_array_size;
+		RangeTblEntry **rteArray = (RangeTblEntry **) palloc0(sizeof(RangeTblEntry *) * (arraySize + 1));
+		for (j = 0; j < arraySize; j++)
+		{
+			RangeTblEntry *rte = NULL;
+			if (root->simple_rte_array[j] != NULL)
+				rte = copyObject(root->simple_rte_array[j]);
+
+			rteArray[j] =rte;
+		}
+		rteArrayList = lappend(rteArrayList, rteArray);
+	}
+
+	return rteArrayList;
 }
 
 /*
@@ -2203,25 +2294,10 @@ append_colIdx(AttrNumber *colIdx, Oid *operators, int numcols, int colno,
 }
 
 static PlannerInfo *
-add_subroot_for_subqueryscan(PlannerInfo *root, RangeTblEntry *rte)
+add_subroot_for_subqueryscan(PlannerInfo *root)
 {
-	RelOptInfo *rel;
-	int array_size = 2;
 	PlannerInfo *subroot = makeNode(PlannerInfo);
 	memcpy(subroot, root, sizeof(PlannerInfo));
-
-	subroot->simple_rel_array_size = array_size;
-	subroot->simple_rel_array = (RelOptInfo **) palloc0(sizeof(RelOptInfo *) * array_size);
-	subroot->simple_rte_array = (RangeTblEntry **) palloc0(sizeof(RangeTblEntry *) * array_size);
-
-	subroot->simple_rte_array[1] = rte;
-	rel = build_simple_rel(subroot, 1, RELOPT_BASEREL);
-
-	if (root->simple_rel_array_size > 1 && root->simple_rel_array[1] != NULL)
-	{
-		rel->subroot = root->simple_rel_array[1]->subroot;
-		rel->subplan = root->simple_rel_array[1]->subplan;
-	}
 
 	return subroot;
 }
@@ -2236,12 +2312,6 @@ rebuild_append_simple_rel_and_rte(PlannerInfo *root,
 	int			i;
 	int			array_size;
 	ListCell	*l1, *l2, *l3;
-
-	if (root->simple_rel_array)
-		pfree(root->simple_rel_array);
-
-	if (root->simple_rte_array)
-		pfree(root->simple_rte_array);
 
 	array_size = list_length(rtable) + 1;
 	root->simple_rel_array_size = array_size;
@@ -2335,11 +2405,13 @@ plan_list_rollup_plans(PlannerInfo *root,
 	int rollup_no;
 	List *subplans = NIL;
 	List *relArrayList = NIL;
+	List *rteArrayList = NIL;
 	List *orig_tlist = context->tlist;
 	AttrNumber *orig_grpColIdx = context->grpColIdx;
 	Oid *orig_grpOperators = context->grpOperators;
 	int orig_numGroupCols = context->numGroupCols;
 	double orig_numGroups = *context->p_dNumGroups;
+	int	orig_simple_rel_size = root->simple_rel_array_size;
 	double new_numGroups = 0;
 	Query *orig_query = root->parse;
 	Query *final_query = NULL;
@@ -2383,6 +2455,8 @@ plan_list_rollup_plans(PlannerInfo *root,
 										  context);
 
 		relArrayList = generate_list_simple_rel_array(root,
+										  list_length(context->canonical_rollups));
+		rteArrayList = generate_list_simple_rte_array(root,
 										  list_length(context->canonical_rollups));
 	}
 	else
@@ -2460,7 +2534,11 @@ plan_list_rollup_plans(PlannerInfo *root,
 		}
 
 		if (rollup_no > 0)
+		{
 			root->simple_rel_array = (RelOptInfo**)list_nth(relArrayList, rollup_no);
+			root->simple_rte_array = (RangeTblEntry **)list_nth(rteArrayList, rollup_no);
+			root->simple_rel_array_size = orig_simple_rel_size;
+		}
 
 		rollup_plan = make_aggs_for_rollup(root, context, subplan);
 
@@ -2505,7 +2583,7 @@ plan_list_rollup_plans(PlannerInfo *root,
 			mark_passthru_locus(rollup_plan, true, true);
 			pfree(resno_map);
 
-			rollup_subroot = add_subroot_for_subqueryscan(root, newrte);
+			rollup_subroot = add_subroot_for_subqueryscan(root);
 			rollup_subplan = (SubqueryScan *)rollup_plan;
 			rollup_subroots = lappend(rollup_subroots, rollup_subroot);
 			rollup_subplans = lappend(rollup_subplans, rollup_subplan);
