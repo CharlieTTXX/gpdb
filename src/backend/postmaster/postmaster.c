@@ -134,7 +134,6 @@
 #include "storage/pg_shmem.h"
 #include "storage/pmsignal.h"
 #include "storage/proc.h"
-#include "storage/procarray.h"
 #include "storage/procsignal.h"
 #include "tcop/tcopprot.h"
 #include "utils/builtins.h"
@@ -275,6 +274,13 @@ bool		Db_user_namespace = false;
 bool		enable_bonjour = false;
 char	   *bonjour_name;
 bool		restart_after_crash = true;
+
+/*
+ * This is set in queueMppCancelRequest() that are handling
+ * a GPDB specific MPP cancel request.
+ */
+int			mppCancelSessionId = InvalidGpSessionId;
+MsgType		mppCancelRequestType = 0;
 
 /*
  * PIDs of special child processes; 0 when not running. When adding a new PID
@@ -514,7 +520,7 @@ static int	BackendStartup(Port *port);
 static int	ProcessStartupPacket(Port *port, bool ssl_done, bool gss_done);
 static void SendNegotiateProtocolVersion(List *unrecognized_protocol_options);
 static void processCancelRequest(Port *port, void *pkt, MsgType code);
-static void processMppCancelRequest(Port *port, void *pkt, MsgType code);
+static void queueMppCancelRequest(Port *port, void *pkt, MsgType code);
 static int	initMasks(fd_set *rmask);
 static void report_fork_failure_to_client(Port *port, int errnum);
 static CAC_state canAcceptConnections(int backend_type);
@@ -2346,10 +2352,9 @@ ProcessStartupPacket(Port *port, bool ssl_done, bool gss_done)
 	 */
 	if (proto == MPP_CANCEL_REQUEST_CODE || proto == MPP_FINISH_REQUEST_CODE)
 	{
-		InitProcess();
-		processMppCancelRequest(port, buf, proto);
-		/* Not really an error, but we don't want to proceed further */
-		return STATUS_ERROR;
+		queueMppCancelRequest(port, buf, proto);
+		port->user_name = "mpp_cancel";
+		return STATUS_SKIP;
 	}
 
 	if (proto == NEGOTIATE_SSL_CODE && !ssl_done)
@@ -2860,7 +2865,7 @@ SendNegotiateProtocolVersion(List *unrecognized_protocol_options)
 }
 
 static void
-processMppCancelRequest(Port *port, void *pkt, MsgType code)
+queueMppCancelRequest(Port *port, void *pkt, MsgType code)
 {
 	CancelMppRequestPacket *canc = (CancelMppRequestPacket *) pkt;
 	int			backendPID;
@@ -2896,7 +2901,10 @@ processMppCancelRequest(Port *port, void *pkt, MsgType code)
 		{
 			if (bp->cancel_key == cancelAuthCode)
 			{
-				SendMppProcSignal(sessionid, code);
+				mppCancelSessionId = sessionid;
+				mppCancelRequestType = code;
+				elog(DEBUG1, "queueMppCancelRequest() has mppCancelSessionId %d, mppCancelRequestType %d.",
+								mppCancelSessionId, mppCancelRequestType);
 			}
 			else
 				/* Right PID, wrong key: no way, Jose */
@@ -4963,6 +4971,9 @@ BackendInitialize(Port *port)
 	 */
 	disable_timeout(STARTUP_PACKET_TIMEOUT, false);
 	PG_SETMASK(&BlockSig);
+
+	if (status == STATUS_SKIP)
+		return;
 
 	/*
 	 * Stop here if it was bad or a cancel packet.  ProcessStartupPacket

@@ -74,6 +74,7 @@
 #include "storage/proc.h"
 #include "storage/procsignal.h"
 #include "storage/sinval.h"
+#include "storage/procarray.h"
 #include "tcop/fastpath.h"
 #include "tcop/pquery.h"
 #include "tcop/tcopprot.h"
@@ -230,6 +231,9 @@ static MemoryContext row_description_context = NULL;
 static StringInfoData row_description_buf;
 
 static DtxContextInfo TempDtxContextInfo = DtxContextInfo_StaticInit;
+
+extern int mppCancelSessionId;
+extern MsgType mppCancelRequestType;
 
 /* ----------------------------------------------------------------
  *		decls for routines only used in this file
@@ -4903,6 +4907,14 @@ PostgresMain(int argc, char *argv[],
 #else
 	InitProcess();
 #endif
+
+	/* Forward the request to other QEs, for this segment */
+	if (mppCancelSessionId != InvalidGpSessionId)
+	{
+		elog(DEBUG1, "Forward request to other QEs, mppCancelSessionId is %d.", mppCancelSessionId);
+		SendMppProcSignal(mppCancelSessionId, mppCancelRequestType);
+		proc_exit(0);
+	}
 
 	/* We need to allow SIGINT, etc during the initial transaction */
 	PG_SETMASK(&UnBlockSig);

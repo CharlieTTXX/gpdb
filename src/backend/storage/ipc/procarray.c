@@ -5378,7 +5378,7 @@ SendMppProcSignal(int sessionid, MsgType code)
 	int				index;
 	ProcArrayStruct *arrayP = procArray;
 
-	ereport(LOG,
+	ereport(DEBUG1,
 			(errmsg("start sending signals to all QEs in segment, session %d, MsgType %u",
 			sessionid,
 			code)));
@@ -5392,7 +5392,7 @@ SendMppProcSignal(int sessionid, MsgType code)
 
 		if (proc->mppSessionId == sessionid)
 		{
-			elog(DEBUG5, "SendMppProcSignal is canceling pid QEPid %d", proc->pid);
+			elog(DEBUG1, "SendMppProcSignal is canceling pid QEPid %d", proc->pid);
 
 			if(code == FINISH_REQUEST_CODE)
 				SendProcSignal(proc->pid, PROCSIG_QUERY_FINISH, proc->backendId);
